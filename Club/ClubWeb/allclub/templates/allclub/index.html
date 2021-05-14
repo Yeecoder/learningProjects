@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>All Clubs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/popper.js/1.15.0/umd/popper.min.js"></script>
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <style>
+        /* Make the image fully responsive */
+        .carousel-inner img {
+          width: 100%;
+          height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-sm bg-dark navbar-dark fixed-top">
+        <a class="navbar-brand" href="#">HOME</a>
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" href="javascript:void(0)">All Clubs</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="javascript:void(0)">Star Level</a>
+            </li>
+        </ul>
+        <ul class="navbar-nav ml-auto" >
+            {% if request.session.user_name %}
+                <li class="nav-item">
+                    <h1>{{ request.session.user_name }}!  欢迎回来！</h1>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signinaout:logout' %}">退出</a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signinaout:login' %}">登录</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signinaout:register' %}">注册</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="container-fluid" style="margin-top:80px">
+
+        <div id="demo" class="carousel slide" data-ride="carousel">
+
+        <!-- 指示符 -->
+        <ul class="carousel-indicators">
+        <li data-target="#demo" data-slide-to="0" class="active"></li>
+        <li data-target="#demo" data-slide-to="1"></li>
+        <li data-target="#demo" data-slide-to="2"></li>
+        </ul>
+
+        <!-- 轮播图片 -->
+        <div class="carousel-inner">
+        <div class="carousel-item active">
+            <img src="https://static.runoob.com/images/mix/img_fjords_wide.jpg">
+        </div>
+        <div class="carousel-item">
+            <img src="https://static.runoob.com/images/mix/img_nature_wide.jpg">
+        </div>
+        <div class="carousel-item">
+            <img src="https://static.runoob.com/images/mix/img_mountains_wide.jpg">
+        </div>
+        </div>
+
+        <!-- 左右切换按钮 -->
+        <a class="carousel-control-prev" href="#demo" data-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </a>
+        <a class="carousel-control-next" href="#demo" data-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </a>
+
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="card-title">
+                    <h2>Welcome to this web!</h2>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="card-body">
+                    <h4 class="card-title">体育运动类</h4>
+                    <p class="card-text">
+                        体育运动类共有社团 * 个
+                    </p>
+                    <div class="row">
+                    {% for sport in sports %}
+                        <div class="col-sm-2">
+                            {{ sport.clubname }}
+                        </div>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="card-body">
+                    <h4 class="card-title">文学艺术类</h4>
+                    <p class="card-text">
+                        文学艺术类共有社团 * 个
+                    </p>
+                    <div class="row">
+                        {% for literary in literaries %}
+                            <div class="col-sm-2">
+                                {{ literary.clubname }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="card-body">
+                    <h4 class="card-title">科技创新类</h4>
+                    <p class="card-text">
+                        科技创新类共有社团 * 个
+                    </p>
+                    <div class="row">
+                    {% for technology in technologys %}
+                        <div class="col-sm-2">
+                            {{ technology.clubname }}
+                        </div>
+                    {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
