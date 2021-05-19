@@ -1,5 +1,7 @@
 from django.db import models
 
+
+# MEDIA_ADDR = 'http://localhost:8000/media/'
 # Create your models here.
 class User(models.Model):
     gender = (
@@ -18,9 +20,15 @@ class User(models.Model):
     c_time = models.DateTimeField(auto_now_add=True)
     has_confirmed = models.BooleanField(default=False)
     user_type = models.CharField(max_length=255,choices=status,default='普通用户')
+    head_image = models.ImageField(upload_to='user_head/',default='',verbose_name='头像')
+    # check_image = models.ImageField(upload_to='id_check/',default=,verbose_name='身份信息卡')
+    # id_checked = models.BooleanField(default=False)
+
 
     def __str__(self):
         return self.name
+    # def get_avatar_url(self):
+    #     return MEDIA_ADDR + str(self.avatar)
 
     class Meta:
         ordering = ["-c_time"]

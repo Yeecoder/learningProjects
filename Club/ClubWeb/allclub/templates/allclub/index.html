@@ -17,6 +17,7 @@
     </style>
 </head>
 <body>
+<!--    <nav class="navbar navbar-expand-sm bg-dark navbar-dark fixed-top">-->
     <nav class="navbar navbar-expand-sm bg-dark navbar-dark fixed-top">
         <a class="navbar-brand" href="#">HOME</a>
         <ul class="navbar-nav">
@@ -29,8 +30,13 @@
         </ul>
         <ul class="navbar-nav ml-auto" >
             {% if request.session.user_name %}
-                <li class="nav-item">
-                    <h1>{{ request.session.user_name }}!  欢迎回来！</h1>
+                <li class="nav-item dropdown">
+                    <img src="{{ user.head_image.url }}"></img>
+                    <a class="nav-link dropdown-toggle" href="#" id="navbardrop" data-toggle="dropdown">{{ request.session.user_name }}!  欢迎回来！</a>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#">校园身份验证</a>
+                        <a class="dropdown-item" href="#">修改个人信息</a>
+                    </div>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'signinaout:logout' %}">退出</a>
@@ -90,7 +96,7 @@
                 <div class="card-body">
                     <h4 class="card-title">体育运动类</h4>
                     <p class="card-text">
-                        体育运动类共有社团 * 个
+                        体育运动类共有社团 {{ sports_num }} 个
                     </p>
                     <div class="row">
                     {% for sport in sports %}
@@ -106,7 +112,7 @@
                 <div class="card-body">
                     <h4 class="card-title">文学艺术类</h4>
                     <p class="card-text">
-                        文学艺术类共有社团 * 个
+                        文学艺术类共有社团 {{ literaries_num }} 个
                     </p>
                     <div class="row">
                         {% for literary in literaries %}
@@ -123,7 +129,7 @@
                 <div class="card-body">
                     <h4 class="card-title">科技创新类</h4>
                     <p class="card-text">
-                        科技创新类共有社团 * 个
+                        科技创新类共有社团 {{ technologys_num }} 个
                     </p>
                     <div class="row">
                     {% for technology in technologys %}
