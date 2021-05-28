@@ -25,17 +25,19 @@
                 <a class="nav-link" href="javascript:void(0)">All Clubs</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="javascript:void(0)">Star Level</a>
+                <a class="nav-link" href="{% url 'allclub:activity' %}">Club Activities</a>
             </li>
         </ul>
         <ul class="navbar-nav ml-auto" >
             {% if request.session.user_name %}
-                <li class="nav-item dropdown">
+                <li>
                     <img src="{{ user.head_image.url }}"></img>
+                </li>
+                <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="navbardrop" data-toggle="dropdown">{{ request.session.user_name }}!  欢迎回来！</a>
                     <div class="dropdown-menu">
-                        <a class="dropdown-item" href="#">校园身份验证</a>
-                        <a class="dropdown-item" href="#">修改个人信息</a>
+                        <a class="dropdown-item" href="{% url 'signinaout:idconfirm' %}">校园身份验证</a>
+                        <a class="dropdown-item" href="{% url 'signinaout:changes' %}">修改个人信息</a>
                     </div>
                 </li>
                 <li class="nav-item">
@@ -85,13 +87,15 @@
         </a>
 
         </div>
-
+<div class="card">
         <div class="card">
             <div class="card-body">
                 <div class="card-title">
                     <h2>Welcome to this web!</h2>
                 </div>
             </div>
+        </div>
+            <div class="card">
             <div class="card-body">
                 <div class="card-body">
                     <h4 class="card-title">体育运动类</h4>
@@ -101,13 +105,20 @@
                     <div class="row">
                     {% for sport in sports %}
                         <div class="col-sm-2">
-                            {{ sport.clubname }}
+                            <div class="card" style="width:250px">
+                                <img  class="card-img-top" src="{{ sport.clubimage.url }}" alt="Card image" style="width:50%">
+                                <div class="card-body">
+                                    <h4 class="card-title">{{ sport.clubname }}</h4>
+                                    <a href="{{ sport.clubinfo.url }}" class="btn btn-primary">{{ sport.clubname }}详细介绍</a>
+                                </div>
+                            </div>
                         </div>
                     {% endfor %}
                     </div>
                 </div>
             </div>
-
+            </div>
+            <div class="card">
             <div class="card-body">
                 <div class="card-body">
                     <h4 class="card-title">文学艺术类</h4>
@@ -117,14 +128,20 @@
                     <div class="row">
                         {% for literary in literaries %}
                             <div class="col-sm-2">
-                                {{ literary.clubname }}
+                                <div class="card" style="width:250px">
+                                    <img  class="card-img-top" src="{{ literary.clubimage.url }}" alt="Card image" style="width:50%">
+                                    <div class="card-body">
+                                        <h4 class="card-title">{{ literary.clubname }}</h4>
+                                        <a href="{{ literary.clubinfo.url }}" class="btn btn-primary">{{ literary.clubname }}详细介绍</a>
+                                    </div>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
-
                 </div>
             </div>
-
+            </div>
+            <div class="card">
             <div class="card-body">
                 <div class="card-body">
                     <h4 class="card-title">科技创新类</h4>
@@ -134,13 +151,20 @@
                     <div class="row">
                     {% for technology in technologys %}
                         <div class="col-sm-2">
-                            {{ technology.clubname }}
+                            <div class="card" style="width:250px">
+                                <img  class="card-img-top" src="{{ technology.clubimage.url }}" alt="Card image" style="width:50%">
+                                <div class="card-body">
+                                    <h4 class="card-title">{{ technology.clubname }}</h4>
+                                    <a href="{{ technology.clubinfo.url }}" class="btn btn-primary">{{ technology.clubname }}详细介绍</a>
+                                </div>
+                            </div>
                         </div>
                     {% endfor %}
                     </div>
-
                 </div>
             </div>
+            </div>
+</div>
         </div>
     </div>
 

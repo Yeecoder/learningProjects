@@ -10,4 +10,5 @@ urlpatterns = [
     path('register/', views.register,name='register'),
     path('changes/',views.changes,name='changes'),
     path('confirm/',views.user_confirm,name='comfirm'),
+    path('idconfirm/',views.idconfirm,name='idconfirm'),
 ]

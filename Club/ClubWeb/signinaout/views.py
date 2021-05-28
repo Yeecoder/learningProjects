@@ -150,8 +150,20 @@ def register(request):
     return render(request,'signinaout/register.html',locals())
 
 def changes(request):
-
-    return render(request,'signinaout/changes.html')
+    name = request.session['user_name']
+    user = models.User.objects.get(name=name)
+    message = '请检查填写的内容！'
+    if request.method == 'POST':
+        # 实例化表单
+        change_form = forms.ChangeForm(request.POST)
+        if change_form.is_valid():
+            print('已经进入校验')
+            email = change_form.cleaned_data.get('email')
+            sex = change_form.cleaned_data.get('sex')
+            models.User.objects.filter(name=user.name).update(sex=sex,email=email)
+            # return redirect('/signinaout/')
+    change_form = forms.ChangeForm()
+    return render(request,'signinaout/changes.html',locals())
 # user_confirm func
 def user_confirm(request):
     # 从用户在邮件中点击的连接中获取验证码
@@ -178,3 +190,7 @@ def user_confirm(request):
         confirm.delete()
         message = '确认完成，请使用账户登录！'
         return render(request,'signinaout/confirm.html',locals())
+
+
+def idconfirm(request):
+    return render(request,'signinaout/idconfirm.html')
