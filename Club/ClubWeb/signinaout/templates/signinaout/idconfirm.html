@@ -6,9 +6,24 @@
 </head>
 <body>
 <div>
-    <p>
-        Page of idconfirm
-    </p>
+    <div>
+        {% if request.session.is_uploaded == True %}
+            {{ message }}
+        {% endif %}
+    </div>
+    <div>
+        <form action="/info/idconfirm/" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <h3 class="text-center">上传身份信息</h3>
+            <div>
+                {{ idchecked_form.check_image.label_tag }}
+                {{ idchecked_form.check_image }}
+            </div>
+            <div>
+                <button type="submit">上传</button>
+            </div>
+        </form>
+    </div>
     <p>
         <a href="{% url 'allclub:index' %}">
             返回

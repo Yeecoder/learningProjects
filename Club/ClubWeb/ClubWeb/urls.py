@@ -24,4 +24,5 @@ urlpatterns = [
     path('info/',include('signinaout.urls')),
     path('allclubs/',include('allclub.urls')),
     path('captcha/', include('captcha.urls')),
+    path('activity/',include('activity.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -73,6 +73,7 @@ def login(request):
                 request.session['is_login'] = True
                 request.session['user_id'] = user.id
                 request.session['user_name'] = user.name
+                request.session['id_checked'] = user.id_checked
                 # 如果密码正确就重定向到/allclubs/页面
                 return redirect('/allclubs/')
             else:
@@ -193,4 +194,21 @@ def user_confirm(request):
 
 
 def idconfirm(request):
-    return render(request,'signinaout/idconfirm.html')
+    name = request.session['user_name']
+    user = models.User.objects.get(name=name)
+    message = '请上传身份信息图片'
+    if request.method == 'POST':
+        # 实例化表单
+        idchecked_form = forms.IdCkeckForm(request.POST,request.FILES)
+        if idchecked_form.is_valid():
+            print('已经进入校验')
+            idchecked_form = idchecked_form.cleaned_data.get('check_image')
+            user.check_image = idchecked_form
+            user.check_image.name = user.name + '校验' + datetime.datetime.now().strftime('%Y%m%d%H%m') + '.' + \
+                                       user.check_image.name.split('.')[-1]
+            user.save()
+            request.session['is_uploaded'] = True
+            message = '身份信息已上传'
+            # return redirect('/signinaout/')
+    idchecked_form = forms.IdCkeckForm()
+    return render(request,'signinaout/idconfirm.html',locals())

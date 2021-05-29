@@ -21,8 +21,8 @@ class User(models.Model):
     has_confirmed = models.BooleanField(default=False)
     user_type = models.CharField(max_length=255,choices=status,default='普通用户')
     head_image = models.ImageField(upload_to='user_head/',default='',verbose_name='头像')
-    # check_image = models.ImageField(upload_to='id_check/',default=,verbose_name='身份信息卡')
-    # id_checked = models.BooleanField(default=False)
+    check_image = models.ImageField(upload_to='id_check/',default='id_check/check_default.png',verbose_name='身份信息卡')
+    id_checked = models.BooleanField(default=False)
 
 
     def __str__(self):

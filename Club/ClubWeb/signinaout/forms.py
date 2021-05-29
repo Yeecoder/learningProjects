@@ -27,3 +27,6 @@ class ChangeForm(forms.Form):
     )
     email = forms.EmailField(label="邮箱地址", widget=forms.EmailInput())
     sex = forms.ChoiceField(label='性别', choices=gender)
+
+class IdCkeckForm(forms.Form):
+    check_image = forms.ImageField(label='身份验证信息')

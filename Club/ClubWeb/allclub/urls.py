@@ -6,5 +6,5 @@ app_name = 'allclub'
 
 urlpatterns = [
     path('', views.index,name='index'),
-    path('activity/',views.clubactive,name='activity'),
+    # path('activity/',views.clubactive,name='activity'),
 ]

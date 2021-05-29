@@ -19,6 +19,3 @@ def index(request):
 
     # context = {'sports':sports,'literaries':literaries,'technologys':technologys}
     return render(request,'allclub/index.html',locals())
-
-def clubactive(request):
-    return render(request,'allclub/activity.html')
