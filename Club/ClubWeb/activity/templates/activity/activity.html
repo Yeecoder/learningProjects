@@ -6,9 +6,23 @@
 </head>
 <body>
 <div>
-  <p>
-    社团活动 TODO
-  </p>
+    <div>
+<!--        <h1>{{ activities.title }}</h1>-->
+<!--        <br>-->
+<!--        <h4>{{ activities.publisher }}</h4>-->
+<!--        <h4>{{ activities.publish_time }}</h4>-->
+<!--        <h4>{{ activities.change_time }}</h4>-->
+<!--    </div>-->
+<!--    <div>-->
+<!--        <p>-->
+<!--            {{ activities.context }}-->
+<!--        </p>-->
+<!--    </div>-->
+        {% for activity in activities %}
+            <a href="{% url 'activity:detail' activity.title %}">{{activity.title}}</a>
+            <p>{{activity.publisher}}</p>
+        {% endfor %}
+    </div>
 </div>
 </body>
 </html>
