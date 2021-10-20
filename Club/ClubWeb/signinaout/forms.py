@@ -30,3 +30,9 @@ class ChangeForm(forms.Form):
 
 class IdCkeckForm(forms.Form):
     check_image = forms.ImageField(label='身份验证信息')
+
+class ChangePassword(forms.Form):
+    email = forms.EmailField(label="邮箱地址", widget=forms.EmailInput())
+    new_password = forms.CharField(label="新密码", max_length=256, widget=forms.PasswordInput())
+    # old_password = forms.CharField(label="原密码", max_length=256, widget=forms.PasswordInput())
+    captcha = CaptchaField(label='验证码')

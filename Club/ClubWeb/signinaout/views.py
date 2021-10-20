@@ -17,6 +17,14 @@ def make_confirm_string(user):
     models.ConfirmString.objects.create(code=code,user=user)
     return code
 
+def make_change_password_confirm_string(user):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # 将用户名和当前时间作为主体和盐，生成验证码
+    code = hash_code(user.name,now)
+    # 保存用户的验证码
+    models.ChangePasswordConfirmString.objects.create(code=code,user=user)
+    return code
+
 def send_email(email,code):
     from django.core.mail import EmailMultiAlternatives
     # 邮件主题
@@ -31,6 +39,24 @@ def send_email(email,code):
                         <p>请点击站点链接完成注册确认！</p>
                         <p>此链接有效期为{}天！</p>
                         '''.format('localhost:8000/', code, settings.CONFIRM_DAYS)
+    # 将邮件信息打包
+    msg = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [email])
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
+def send_change_password_email(email,code,new):
+    from django.core.mail import EmailMultiAlternatives
+    # 邮件主题
+    subject = '来自localhost:8000/allclubs的修改密码的确认邮件'
+    # 文本格式的邮件内容
+    text_content = '''您在localhost:8000/allclubs注册账号的密码已正在被修改，若非本人操作请无视此邮件！\
+                        如果你看到这条消息，说明你的邮箱服务器不提供HTML链接功能，请联系管理员！'''
+    # html格式的邮件内容
+    html_content = '''
+                        <p>您在<a href="http://{}info/change_password_confirm/?code={}&new={}" target=blank>localhost:8000/allclubs</a>，\
+                        注册账号的密码已正在被修改，若非本人操作请无视此邮件！</p>
+                        <p>请点击站点链接完成密码修改确认！</p>
+                        <p>此链接有效期为{}天！</p>
+                        '''.format('localhost:8000/', code, new , settings.CONFIRM_DAYS)
     # 将邮件信息打包
     msg = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [email])
     msg.attach_alternative(html_content, "text/html")
@@ -102,7 +128,6 @@ def register(request):
     if request.method == 'POST':
         # 实例化表单
         register_form = forms.RegisterForm(request.POST,request.FILES)
-        print(register_form)
         message = '请检查填写的内容！'
         # 对表单内容进行校验
         if register_form.is_valid():
@@ -192,6 +217,33 @@ def user_confirm(request):
         message = '确认完成，请使用账户登录！'
         return render(request,'signinaout/confirm.html',locals())
 
+def change_password_confirm(request):
+    # 从用户在邮件中点击的连接中获取验证码
+    code = request.GET.get('code',None)
+    new_password = request.GET.get('new', None)
+    message = ''
+    try:
+        confirm = models.ChangePasswordConfirmString.objects.get(code=code)
+    except:
+        # 如果找不到对应确认码的用户，进行反馈
+        message = '无效的确认请求！'
+        return render(request,'signinaout/change_password_confirm.html',locals())
+
+    c_time = confirm.c_time
+    now = datetime.datetime.now()
+    # 如果现在的时间已经超过了确认码的有效期限，则反馈重新注册
+    if now > c_time + datetime.timedelta(settings.CONFIRM_DAYS):
+        confirm.user.delete()
+        message = '您的邮件已经过期！请重新申请修改密码！'
+        return render(request,'signinaout/change_password_confirm.html',locals())
+    else:
+        # 如果还在有效期内，则将用户状态改为已确认，并保存用户信息，删除确认码
+        confirm.user.password = new_password
+        confirm.user.save()
+        confirm.delete()
+        message = '确认完成，请使用账户登录！'
+        return render(request,'signinaout/change_password_confirm.html',locals())
+
 
 def idconfirm(request):
     name = request.session['user_name']
@@ -212,3 +264,37 @@ def idconfirm(request):
             # return redirect('/signinaout/')
     idchecked_form = forms.IdCkeckForm()
     return render(request,'signinaout/idconfirm.html',locals())
+
+def change_password(request):
+    # 如果已经登录了就不再允许注册
+    if request.session.get('is_login', None):
+        return redirect('/allclubs/')
+        # 如果没有登录并且有提交信息
+    if request.method == 'POST':
+        # 实例化表单
+        change_password_form = forms.ChangePassword(request.POST)
+        message = '请检查填写的内容！'
+        # 对表单内容进行校验
+        if change_password_form.is_valid():
+            print('已经进入校验')
+            new_password = change_password_form.cleaned_data.get('new_password')
+            email = change_password_form.cleaned_data.get('email')
+            # 找出对应邮箱的用户
+            same_email_user = models.User.objects.get(email=email)
+            if same_email_user:
+                # 如果用户存在，则生成
+                same_email_user.password = hash_code(new_password)
+                # same_email_user.save()
+                # 生成邮箱确认码
+                code = make_change_password_confirm_string(same_email_user)
+                # 发送确认码
+                send_change_password_email(email, code, same_email_user.password)
+                message = '请前往邮箱进行确认'
+                return redirect('/info/login/')
+            else:
+                message = "请确认邮箱填写正确"
+        else:
+            return render(request, 'signinaout/change_password.html', locals())
+    # 如果没有登录并且没有上传信息
+    change_password_form = forms.ChangePassword()
+    return render(request, 'signinaout/change_password.html', locals())
