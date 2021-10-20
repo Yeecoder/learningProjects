@@ -53,19 +53,87 @@
         </ul>
     </nav>
 <div class="container-fluid" style="margin-top:80px">
-    <div>
-        <h1>{{ activity.title }}</h1>
-        <br>
-        <h4>发布者：{{ activity.publisher }}</h4>
-        <h4>创建时间：{{ activity.publish_time }}</h4>
-        <h4>修改时间：{{ activity.change_time }}</h4>
+    <div class="card">
+        <div class="card-body">
+            <div>
+                <h1>{{ activity.title }}</h1>
+                <br>
+                <h4>发布者：{{ activity.publisher }}</h4>
+                <h4>创建时间：{{ activity.publish_time }}</h4>
+                <h4>修改时间：{{ activity.change_time }}</h4>
+            </div>
+            <div>
+                <p>
+                    {{ activity.context }}
+                </p>
+            </div>
+        </div>
     </div>
-    <div>
-        <p>
-            {{ activity.context }}
-        </p>
-    </div>
+    <div class="card">
+        <div class="card-body">
+            <h3>评论区</h3>
+            <div class="comment_post">
+                <div id="commentform_title">
+                    <p id="comment_message"></p>
+                    <textarea rows="10" cols="60" id="comment_context"></textarea>
+                    {% csrf_token %}
+                    <p><button>提交评论</button></p>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="comment_show">
+                <div class="feedback_area_title">
+                    评论列表
+                </div>
+                <div class="comment_list">
+                    {% for comment in comment_list %}
+                        <div>
+                            <p>第{{ forloop.counter}}楼 -> By:{{ comment.comment_author.name }}    {{ comment.comment_time }}    <button class="reply" name="{{ comment.comment_author.name }}" pk = "{{ comment.pk }}">回复</button></p>
+                            {% if comment.pre_comment_id %}
+                                <p>
+                                    原评论内容：{{ comment.pre_comment.comment_context }}
+                                </p>
+                            {% endif %}
+                            <p>
+                                评论内容：{{ comment.comment_context }}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+    <script>
+            var token = $('input[name=csrfmiddlewaretoken]').val();
+            var pid = ""
+            $(".comment_post p button").click(function (){
+                $.ajax({
+                    url: '/activity/comment/',
+                    type: 'post',
+                    data: {
+                        csrfmiddlewaretoken: token,
+                        comment_context: $("#comment_context").val(),
+                        activity_id: {{ activity.pk }},
+                        pid: pid
+                    },
+                    success: function (res){
+                        console.log(res)
+                        $("#comment_message").html($("#comment_message").html() + "已成功回复")
+                        for(let i = 0;i < 5000;i++){}
+                        window.location.reload()
+                        $("#comment_context").val("")
+                        pid = ""
+                    }
+                })
+            })
+            $(".reply").click(function (){
+                $("#comment_context").focus()
+                var val = "@" + $(this).attr("name") + "\n"
+                $("#comment_context").val(val)
+                pid = $(this).attr("pk")
+            })
+    </script>
 </body>
 </html>

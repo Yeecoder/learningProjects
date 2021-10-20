@@ -7,4 +7,5 @@ app_name = 'activity'
 urlpatterns = [
     path('',views.clubactive,name='activity'),
     path('<str:title>',views.activity_detail,name='detail'),
+    path('comment/',views.comment, name='comment'),
 ]
