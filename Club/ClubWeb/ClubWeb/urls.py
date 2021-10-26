@@ -25,4 +25,5 @@ urlpatterns = [
     path('allclubs/',include('allclub.urls')),
     path('captcha/', include('captcha.urls')),
     path('activity/',include('activity.urls')),
+    path('chat/',include('chat.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

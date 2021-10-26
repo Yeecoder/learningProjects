@@ -1,0 +1,54 @@
+<!-- chat/templates/chat/room.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>One 2 One Chat Room</title>
+</head>
+<body>
+    <p id="user-name">{{ chat_user }}</p>
+    <br>
+    <textarea id="chat-log" cols="100" rows="20"></textarea><br>
+    <input id="chat-message-input" type="text" size="100"><br>
+    <input id="chat-message-submit" type="button" value="Send">
+    {{ one2one_room_name|json_script:"one2one_room_name" }}
+    <script>
+        const one2oneroomName = JSON.parse(document.getElementById('one2one_room_name').textContent);
+
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/one2one/'
+            + one2oneroomName
+            + '/'
+        );
+<!--        接受来自后台的消息-->
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.querySelector('#chat-log').value += (data.user_name + ':' + data.message + '\n');
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {  // enter, return
+                document.querySelector('#chat-message-submit').click();
+            }
+        };
+<!--        传信息到后台-->
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            const user_name = document.querySelector('#user-name').innerText;
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'user_name': user_name,
+            }));
+            messageInputDom.value = '';
+        };
+    </script>
+</body>
+</html>
