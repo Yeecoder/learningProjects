@@ -6,5 +6,5 @@ from . import views
 urlpatterns = [
    path('', views.index, name='index'),
    path('<str:room_name>/', views.room, name='room'),
-   path('one2one/<str:one2one_room_name>/',views.one,name='one2oneroom')
+   path('one2one/<str:one2oneroom_name>/',views.one,name='one2oneroom')
 ]

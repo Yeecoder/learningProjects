@@ -15,7 +15,7 @@
     {{ room_name|json_script:"room-name" }}
     <script>
         const roomName = JSON.parse(document.getElementById('room-name').textContent);
-
+        const cur_user_id = {{ chat_user.id }}
         const chatSocket = new WebSocket(
             'ws://'
             + window.location.host
@@ -28,6 +28,7 @@
             const data = JSON.parse(e.data);
 <!--            document.querySelector('#chat-log').value += (data.user_name + ':' + data.message + '\n');-->
             var vcenter = "\n";
+            var received_user_id = data.cur_user_id;
             var vcurrent = document.getElementById("chat-log");
             var newNodeCenter = document.createElement("div");
             newNodeCenter.setAttribute("id","newadded");
@@ -40,7 +41,10 @@
                     newAnodeCenter.setAttribute("href","");
                 }
                 else{
-                    newAnodeCenter.setAttribute("href","/chat/one2one/" + data.user_name + document.querySelector('#user-name').innerText + "/");
+
+                        newAnodeCenter.setAttribute("href","/chat/one2one/" + (cur_user_id).toString() + "_" + (received_user_id).toString() + "/");
+
+<!--                    newAnodeCenter.setAttribute("href","/chat/one2one/" + data.user_name + document.querySelector('#user-name').innerText + "/");-->
                 }
                 newAnodeCenter.innerHTML = (data.user_name);
                 acur.appendChild(newAnodeCenter);
@@ -72,6 +76,7 @@
             chatSocket.send(JSON.stringify({
                 'message': message,
                 'user_name': user_name,
+                'cur_user_id': cur_user_id,
             }));
             messageInputDom.value = '';
         };

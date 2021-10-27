@@ -28,6 +28,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         print(text_data_json)
         message = text_data_json['message']
         user_name = text_data_json['user_name']
+        cur_user_id = text_data_json['cur_user_id']
 
         # Send message to room group
         await self.channel_layer.group_send(
@@ -36,6 +37,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'type': 'chat_message',
                 'message': message,
                 'user_name': user_name,
+                'cur_user_id': cur_user_id,
             }
         )
 
@@ -44,11 +46,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         print(event)
         message = event['message']
         user_name = event['user_name']
+        cur_user_id = event['cur_user_id']
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
             'message': message,
             'user_name': user_name,
+            'cur_user_id': cur_user_id,
         }))
 
 
@@ -62,6 +66,8 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
         room_name = self.scope['url_route']['kwargs']['room_name']
         #添加进在线用户列表。添加之前，可以做一系列操作，例如查看用户是否合法访问等
         self.users.append({'room_name':room_name,'channel_name':self.channel_name})
+        print(room_name)
+        print(self.channel_name)
         # 同意连接
         await self.accept()
 
@@ -73,7 +79,7 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
             for item in self.history:
                 #如果历史消息里这条记录是发送给刚登录的用户的，添加进用户历史信息列表
                 if item['To_ID']==room_name:
-                    message.append(item)
+                    message.append(item['message'])
         # 如果message长度大于零，表示有历史记录，
         if len(message)>0:
             # for item in message:
@@ -90,7 +96,10 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)['message']
+        text_data_json = json.loads(text_data)
+        message = text_data_json["message"]
+        send_user = text_data_json["send_user"]
+        print(text_data_json)
         # 存入数据库
         # await self.savemsg(text_data_json)
 
@@ -99,6 +108,7 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
 
         # 若已经登录，则直接发送
         channel_name = ''
+        print(self.users)
         for item in self.users:
             if item['room_name'] == To_ID:
                 channel_name = item['channel_name']
@@ -111,22 +121,26 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
                 channel_name,
                 {
                     'type': 'chat_message',
-                    'message': text_data_json,
+                    'message': message,
+                    'send_user': send_user,
                 }
             )
             print("发送成功")
         else:
             # 否则，存储到历史记录
-            self.history.append(text_data_json)
+            self.history.append({'message':message,'To_ID':To_ID})
             print(self.history)
 
     # Receive message from room group
     async def chat_message(self, event):
+        print(event)
         message = event['message']
+        send_user = event['send_user']
         # Send message to WebSocket。发送到前端
         print(message)
         await self.send(text_data=json.dumps({
-            'message': [message]
+            'message': [message],
+            'send_user': send_user,
         }))
 
     # @database_sync_to_async
