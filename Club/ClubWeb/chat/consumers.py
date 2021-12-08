@@ -74,18 +74,21 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
 
         # 检查是否有历史未读消息，若有，则发送给用户(还可以从数据库读取）
         message = []
+        send_user = None
         print(self.history)
         if len(self.history)>0:
             for item in self.history:
                 #如果历史消息里这条记录是发送给刚登录的用户的，添加进用户历史信息列表
                 if item['To_ID']==room_name:
                     message.append(item['message'])
+                    send_user = item['send_user']
         # 如果message长度大于零，表示有历史记录，
         if len(message)>0:
             # for item in message:
             #     self.history.remove(item)
             await self.send(text_data=json.dumps({
-                'message': message
+                'message': message,
+                'send_user': send_user,
             }))
 
 
@@ -128,8 +131,20 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
             print("发送成功")
         else:
             # 否则，存储到历史记录
-            self.history.append({'message':message,'To_ID':To_ID})
+            self.history.append({'message':message,'To_ID':To_ID,'send_user':send_user})
             print(self.history)
+        for item in self.users:
+            if item['room_name'] == send_user:
+                channel_name = item['channel_name']
+                break
+        await self.channel_layer.send(
+            channel_name,
+            {
+                'type': 'chat_message',
+                'message': message,
+                'send_user': send_user,
+            }
+        )
 
     # Receive message from room group
     async def chat_message(self, event):
@@ -142,6 +157,7 @@ class ChatEachConsumer(AsyncWebsocketConsumer):
             'message': [message],
             'send_user': send_user,
         }))
+
 
     # @database_sync_to_async
     # def savemsg(self, text_data_json):
