@@ -111,6 +111,15 @@ let Customers = {
   haveFreeSetFlag : 0,
   //有等待的顾客的Flag
   haveWaitingFlag : 0,
+  //三类菜品的flag，表示当前是否满足下单的条件
+  coldFlag : 0,
+  hotFlag : 0,
+  drinkFlag : 0,
+  coldcheckflag : 0,
+  hotcheckflag : 0,
+  drinkcheckflag : 0,
+  //正在点菜的顾客的费用
+  cur_first_customer_free : 0,
   //生成顾客
   createCustomer : function() {
     if(Customers.waitingCustomersLimit > 1) {
@@ -282,7 +291,10 @@ let Customers = {
   //移除之后显示菜单
   showMenu : function(ele,name) {
     let leaveButton = document.getElementsByClassName("LeaveThere")[0];
-    leaveButton.addEventListener("click",Customers.CustomerLeave);
+    leaveButton.addEventListener("click",Customers.customerLeave);
+
+    let finishButton = document.getElementsByClassName("Finish")[0];
+    finishButton.addEventListener("click",Customers.finishButton);
 
     let Menu = document.getElementsByClassName("Menu")[0];
     let wrap = document.createElement("div");
@@ -296,267 +308,228 @@ let Customers = {
     wrap.appendChild(newcus);
     father.appendChild(wrap);
 
-    Menu.childNodes[1].innerText = name + "正在点菜，已点" + "cur_first_customer_free" + "元的菜";
+    Menu.childNodes[1].innerText = name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
 
-    // setMenuCheckboxesClickEvents();
+    Customers.setMenuCheckboxesClickEvents();
     Menu.style.display = '';
     cover.style.display = '';
   },
-  CustomerLeave : function () {
+  customerLeave : function () {
   let Menu = document.getElementsByClassName("Menu")[0];
   let wrap = document.getElementsByClassName("curCustomerWrap")[0];
   Menu.style.display = 'none';
   cover.style.display = 'none';
   wrap.style.display = 'none';
+  },
+  //顾客点完菜后并且检查完菜单是否合适后，将顾客送入座位
+  finishButton : function () {
+    let Menu = document.getElementsByClassName("Menu")[0];
+    let wrap = document.getElementsByClassName("curCustomerWrap")[0];
+    Menu.style.display = 'none';
+    cover.style.display = 'none';
+    let father = document.getElementsByClassName("mainGame")[0];
+    Customers.getFreeSet(wrap);
+    father.removeChild(wrap);
+    console.log("关闭菜单");
+    // let cold = document.getElementsByClassName("colddishcheckbox-box");
+    // for(let i=0;i<cold.length;i++) {
+    //   cold[i].disabled = false;
+    //   cold[i].removeEventListener("click",function(){changeColdCheckboxesStatus(i,colddishes);});
+    //   cold[i].removeEventListener("click",changeColdFlagAndCheckStatus);
+    //   cold[i].checked = false;
+    // }
+    // let hot = document.getElementsByClassName("hotdishcheckbox-box");
+    // for(let i=0;i<hot.length;i++) {
+    //   hot[i].disabled = false;
+    //   hot[i].removeEventListener("click",function(){changeColdCheckboxesStatus(i,hotdishes);});
+    //   hot[i].removeEventListener("click",changeColdFlagAndCheckStatus);
+    //   hot[i].checked = false;
+    // }
+    // let drink = document.getElementsByClassName("drinkcheckbox-box");
+    // for(let i=0;i<drink.length;i++) {
+    //   drink[i].disabled = false;
+    //   drink[i].removeEventListener("click",function(){changeColdCheckboxesStatus(i,drinks);});
+    //   drink[i].removeEventListener("click",changeColdFlagAndCheckStatus);
+    //   drink[i].checked = false;
+    // }
+  },
+  //将顾客送入座位
+  getFreeSet : function (cur_first_customer) {
+    let allSets = document.getElementsByClassName("Customer");
+    for(let i = 0;i<allSets.length;i++) {
+      if(allSets[i].childNodes[1] === undefined){
+        let newimg = document.createElement('img');
+        newimg.src =  cur_first_customer.children[0].children[0].getAttribute("src");
+        allSets[i].appendChild(newimg);
+        break;
+      }
+    }
+  },
+  //为每个checkbox添加eventlistener，便于进行菜单状态检查和下单按钮状态的修改
+  setMenuCheckboxesClickEvents : function () {
+    let colddishes = document.getElementsByClassName("colddishcheckbox-box");
+    let hotdishes = document.getElementsByClassName("hotdishcheckbox-box");
+    let drinks = document.getElementsByClassName("drinkcheckbox-box");
+
+    for(let i=0;i<colddishes.length;i++){
+      try {
+        colddishes[i].removeEventListener("click",Customers.changeColdFlagAndCheckStatus);
+        colddishes[i].removeEventListener("click",function(){Customers.changeColdCheckboxesStatus(i,colddishes);});
+      }
+      catch(err) {
+        ;
+      }
+      colddishes[i].addEventListener("click",Customers.changeColdFlagAndCheckStatus);
+      colddishes[i].addEventListener("click",function(){Customers.changeColdCheckboxesStatus(i,colddishes);});
+    }
+    for(let i=0;i<hotdishes.length;i++){
+      try {
+        hotdishes[i].removeEventListener("click",Customers.changeHotFlagAndCheckStatus);
+        hotdishes[i].removeEventListener("click",function(){Customers.changeHotCheckboxesStatus(i,colddishes);});
+      }
+      catch(err) {
+        ;
+      }
+      hotdishes[i].addEventListener("click",Customers.changeHotFlagAndCheckStatus);
+      hotdishes[i].addEventListener("click",function(){Customers.changeHotCheckboxesStatus(i,hotdishes);});
+
+    }
+    for(let i=0;i<drinks.length;i++){
+      try {
+        drinks[i].removeEventListener("click",Customers.changeDrinkFlagAndCheckStatus);
+        drinks[i].removeEventListener("click",function(){Customers.changeDrinkCheckboxesStatus(i,colddishes);});
+      }
+      catch(err) {
+        ;
+      }
+      drinks[i].addEventListener("click",Customers.changeDrinkFlagAndCheckStatus);
+      drinks[i].addEventListener("click",function(){Customers.changeDrinkCheckboxesStatus(i,drinks);});
+    }
+  },
+  //为三类菜品分别设置修改flag的方法
+  changeColdFlagAndCheckStatus : function () {
+    if(this.checked){
+      Customers.coldFlag++;
+    }
+    else{
+      Customers.coldFlag--;
+    }
+    Customers.checkStatus();
+  },
+
+  changeHotFlagAndCheckStatus : function () {
+    if(this.checked){
+      Customers.hotFlag++;
+    }
+    else{
+      Customers.hotFlag--;
+    }
+    Customers.checkStatus();
+  },
+
+  changeDrinkFlagAndCheckStatus : function () {
+    if(this.checked){
+      Customers.drinkFlag++;
+    }
+    else{
+      Customers.drinkFlag--;
+    }
+    Customers.checkStatus();
+  },
+  //检查菜单当前是否满足条件，每点击一次，就检查一次
+  checkStatus : function () {
+    if(Customers.coldFlag === 0 && Customers.hotFlag === 1 && Customers.drinkFlag ===0){
+      let finishButton = document.getElementsByClassName("Finish")[0];
+      finishButton.addEventListener("click",Customers.finishButton);
+      finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
+    }
+    else if(Customers.coldFlag === 1 && Customers.hotFlag === 1 && Customers.drinkFlag ===0) {
+      let finishButton = document.getElementsByClassName("Finish")[0];
+      finishButton.addEventListener("click",Customers.finishButton);
+      finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
+
+    }
+    else if(Customers.coldFlag === 1 && Customers.hotFlag === 1 && Customers.drinkFlag === 1) {
+      let finishButton = document.getElementsByClassName("Finish")[0];
+      finishButton.addEventListener("click",Customers.finishButton);
+      finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
+
+    }
+    else if(Customers.coldFlag === 0 && Customers.hotFlag === 1 && Customers.drinkFlag === 1) {
+      let finishButton = document.getElementsByClassName("Finish")[0];
+      finishButton.addEventListener("click",Customers.finishButton);
+      finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
+    }
+    else {
+      let finishButton = document.getElementsByClassName("Finish")[0];
+      finishButton.style.background = "linear-gradient(to top, #ded3ba 0%,#ded3ba 50%,#d3c6a5 51%,#d3c6a5 100%)";
+      console.log("check the menu");
+    }
+  },
+  changeColdCheckboxesStatus : function (idx,dishes) {
+    if(Customers.coldcheckflag === 0) {
+      for(let i=0;i<dishes.length;i++){
+        if(i !== idx) {
+          dishes[i].disabled = true;
+        }
+        Customers.coldcheckflag = 1;
+      }
+      Customers.cur_first_customer_free += parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
+      let Menu = document.getElementsByClassName("Menu")[0];
+      Menu.childNodes[1].innerText = Customers.name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+    }
+    else if(Customers.coldcheckflag === 1) {
+      for(let i=0;i<dishes.length;i++){
+        dishes[i].disabled = false;
+      }
+      Customers.coldcheckflag = 0;
+      Customers.cur_first_customer_free -= parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
+      let Menu = document.getElementsByClassName("Menu")[0];
+      Menu.childNodes[1].innerText = Customers.name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+    }
+  },
+  changeHotCheckboxesStatus : function (idx,dishes) {
+    if(Customers.hotcheckflag === 0) {
+      for(let i=0;i<dishes.length;i++){
+        if(i !== idx) {
+          dishes[i].disabled = true;
+        }
+        Customers.hotcheckflag = 1;
+      }
+      Customers.cur_first_customer_free += parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
+      let Menu = document.getElementsByClassName("Menu")[0];
+      Menu.childNodes[1].innerText = Customers.name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+    }
+    else if(Customers.hotcheckflag === 1) {
+      for(let i=0;i<dishes.length;i++){
+        dishes[i].disabled = false;
+      }
+      Customers.hotcheckflag = 0;
+      Customers.cur_first_customer_free -= parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
+      let Menu = document.getElementsByClassName("Menu")[0];
+      Menu.childNodes[1].innerText = Customers.name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+    }
+  },
+  changeDrinkCheckboxesStatus : function (idx,dishes) {
+    if(Customers.drinkcheckflag === 0) {
+      for(let i=0;i<dishes.length;i++){
+        if(i !== idx) {
+          dishes[i].disabled = true;
+        }
+        Customers.drinkcheckflag = 1;
+      }
+      Customers.cur_first_customer_free += parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
+      let Menu = document.getElementsByClassName("Menu")[0];
+      Menu.childNodes[1].innerText = Customers.name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+    }
+    else if(Customers.drinkcheckflag === 1) {
+      for(let i=0;i<dishes.length;i++){
+        dishes[i].disabled = false;
+      }
+      Customers.drinkcheckflag = 0;
+      Customers.cur_first_customer_free -= parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
+      let Menu = document.getElementsByClassName("Menu")[0];
+      Menu.childNodes[1].innerText = Customers.name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+    }
+  }
 }
-}
-
-// //获取当前有多少空座位、有多少等待的顾客、有多少已经走了的顾客、当前处于队头的顾客的index
-// //当前顾客的队列、队首顾客、暂停flag、当前顾客点菜的金额
-// // let freeSet = document.getElementsByClassName("Customer").length;
-// let allnewcus = 0;
-// let leavedcus = 0;
-// let cur_new_idx = 0;
-// let cur_all_new_customer_que = [];
-// let cur_all_new_customer_name = [];
-// let cur_first_customer = undefined;
-// let cur_first_customer_name = undefined;
-
-// let cur_first_customer_free = 0;
-// let max_curstomer_waiting = 6;
-
-// //显示菜单栏
-// function showMenu() {
-//     let leaveButton = document.getElementsByClassName("LeaveThere")[0];
-//     leaveButton.addEventListener("click",CustomerLeave);
-
-//     let Menu = document.getElementsByClassName("Menu")[0];
-//     let wrap = document.createElement("div");
-//     let father = document.getElementsByClassName("mainGame")[0];
-//     wrap.setAttribute("class","curCustomerWrap");
-//     let newcus = document.createElement("div");
-//     newcus.setAttribute("class","curCustomer");
-//     let newimg = document.createElement("img");
-//     newimg.setAttribute("src",cur_first_customer.children[0].children[0].getAttribute("src"));
-//     newcus.appendChild(newimg);
-//     wrap.appendChild(newcus);
-//     father.appendChild(wrap);
-
-//     Menu.childNodes[1].innerText = cur_first_customer_name + "正在点菜，已点" + cur_first_customer_free + "元的菜";
-
-//     setMenuCheckboxesClickEvents();
-//     Menu.style.display = '';
-//     cover.style.display = '';
-// }
-// //顾客点击菜单后选择不吃了，离开
-// function CustomerLeave() {
-//   let Menu = document.getElementsByClassName("Menu")[0];
-//   let wrap = document.getElementsByClassName("curCustomerWrap")[0];
-//   Menu.style.display = 'none';
-//   cover.style.display = 'none';
-//   wrap.style.display = 'none';
-// }
-// //顾客点完菜后并且检查完菜单是否合适后，将顾客送入座位
-// function FinishButton() {
-//   let Menu = document.getElementsByClassName("Menu")[0];
-//   let wrap = document.getElementsByClassName("curCustomerWrap")[0];
-//   Menu.style.display = 'none';
-//   cover.style.display = 'none';
-//   let father = document.getElementsByClassName("mainGame")[0];
-//   father.removeChild(wrap);
-//   GetFreeSet();
-//   cur_first_customer_free = 0;
-//   let cold = document.getElementsByClassName("colddishcheckbox-box");
-//   for(let i=0;i<cold.length;i++) {
-//     cold[i].disabled = false;
-//     cold[i].removeEventListener("click",function(){changeColdCheckboxesStatus(i,colddishes);});
-//     cold[i].removeEventListener("click",changeColdFlagAndCheckStatus);
-//     cold[i].checked = false;
-//   }
-//   let hot = document.getElementsByClassName("hotdishcheckbox-box");
-//   for(let i=0;i<hot.length;i++) {
-//     hot[i].disabled = false;
-//     hot[i].removeEventListener("click",function(){changeColdCheckboxesStatus(i,hotdishes);});
-//     hot[i].removeEventListener("click",changeColdFlagAndCheckStatus);
-//     hot[i].checked = false;
-//   }
-//   let drink = document.getElementsByClassName("drinkcheckbox-box");
-//   for(let i=0;i<drink.length;i++) {
-//     drink[i].disabled = false;
-//     drink[i].removeEventListener("click",function(){changeColdCheckboxesStatus(i,drinks);});
-//     drink[i].removeEventListener("click",changeColdFlagAndCheckStatus);
-//     drink[i].checked = false;
-//   }
-// }
-
-
-// //将顾客送入座位
-// function GetFreeSet() {
-//   let allsets = document.getElementsByClassName("Customer");
-//   for(let i = 0;i<allsets.length;i++) {
-//     if(allsets[i].childNodes[1] === undefined){
-//       let newimg = document.createElement('img');
-//       newimg.src =  cur_first_customer.children[0].children[0].getAttribute("src");
-//       allsets[i].appendChild(newimg);
-//       cur_first_customer = undefined;
-//       cur_first_customer_name = undefined;
-//       break;
-//     }
-//   }
-// }
-// //三类菜品的flag，表示当前是否满足下单的条件
-// let coldFlag = 0;
-// let hotFlag = 0;
-// let drinkFlag = 0;
-// //为三类菜品分别设置修改flag的方法
-// function changeColdFlagAndCheckStatus() {
-//   if(this.checked){
-//     coldFlag++;
-//   }
-//   else{
-//     coldFlag--;
-//   }
-//   CheckStatus();
-// }
-
-// function changeHotFlagAndCheckStatus() {
-//   if(this.checked){
-//     hotFlag++;
-//   }
-//   else{
-//     hotFlag--;
-//   }
-//   CheckStatus();
-// }
-
-// function changeDrinkFlagAndCheckStatus() {
-//   if(this.checked){
-//     drinkFlag++;
-//   }
-//   else{
-//     drinkFlag--;
-//   }
-//   CheckStatus();
-// }
-// //检查菜单当前是否满足条件，每点击一次，就检查一次
-// function CheckStatus() {
-//   if(coldFlag === 0 && hotFlag === 1 && drinkFlag ===0){
-//     let finishButton = document.getElementsByClassName("Finish")[0];
-//     finishButton.addEventListener("click",FinishButton);
-//     finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
-//   }
-//   else if(coldFlag === 1 && hotFlag === 1 && drinkFlag ===0) {
-//     let finishButton = document.getElementsByClassName("Finish")[0];
-//     finishButton.addEventListener("click",FinishButton);
-//     finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
-
-//   }
-//   else if(coldFlag === 1 && hotFlag === 1 && drinkFlag === 1) {
-//     let finishButton = document.getElementsByClassName("Finish")[0];
-//     finishButton.addEventListener("click",FinishButton);
-//     finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
-
-//   }
-//   else if(coldFlag === 0 && hotFlag === 1 && drinkFlag === 1) {
-//     let finishButton = document.getElementsByClassName("Finish")[0];
-//     finishButton.addEventListener("click",FinishButton);
-//     finishButton.style.background = "linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%)";
-//     // finishButton.removeEventListener("click",function(){changeHotCheckboxesStatus(i,hotdishes);});
-//   }
-//   else {
-//     let finishButton = document.getElementsByClassName("Finish")[0];
-//     finishButton.style.background = "linear-gradient(to top, #ded3ba 0%,#ded3ba 50%,#d3c6a5 51%,#d3c6a5 100%)";
-//     console.log("check the menu");
-//   }
-// }
-// function changeColdCheckboxesStatus(idx,dishes) {
-//   if(coldcheckflag === 0) {
-//     for(let i=0;i<dishes.length;i++){
-//       if(i !== idx) {
-//         dishes[i].disabled = true;
-//       }
-//       coldcheckflag = 1;
-//     }
-//     cur_first_customer_free += parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
-//     let Menu = document.getElementsByClassName("Menu")[0];
-//     Menu.childNodes[1].innerText = cur_first_customer_name + "正在点菜，已点" + cur_first_customer_free + "元的菜";
-//   }
-//   else if(coldcheckflag === 1) {
-//     for(let i=0;i<dishes.length;i++){
-//       dishes[i].disabled = false;
-//     }
-//     coldcheckflag = 0;
-//     cur_first_customer_free -= parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
-//     let Menu = document.getElementsByClassName("Menu")[0];
-//     Menu.childNodes[1].innerText = cur_first_customer_name + "正在点菜，已点" + cur_first_customer_free + "元的菜";  
-//   }
-// }
-// function changeHotCheckboxesStatus(idx,dishes) {
-//   if(hotcheckflag === 0) {
-//     for(let i=0;i<dishes.length;i++){
-//       if(i !== idx) {
-//         dishes[i].disabled = true;
-//       }
-//       hotcheckflag = 1;
-//     }
-//     cur_first_customer_free = cur_first_customer_free + parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
-//     let Menu = document.getElementsByClassName("Menu")[0];
-//     Menu.childNodes[1].innerText = cur_first_customer_name + "正在点菜，已点" + cur_first_customer_free + "元的菜";
-//   }
-//   else if(hotcheckflag === 1) {
-//     for(let i=0;i<dishes.length;i++){
-//       dishes[i].disabled = false;
-//     }
-//     hotcheckflag = 0;
-//     cur_first_customer_free -= parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
-//     let Menu = document.getElementsByClassName("Menu")[0];
-//     Menu.childNodes[1].innerText = cur_first_customer_name + "正在点菜，已点" + cur_first_customer_free + "元的菜";
-//   }
-
-// }
-// function changeDrinkCheckboxesStatus(idx,dishes) {
-//   if(drinkcheckflag === 0) {
-//     for(let i=0;i<dishes.length;i++){
-//       if(i !== idx) {
-//         dishes[i].disabled = true;
-//       }
-//       drinkcheckflag = 1;
-//     }
-//     cur_first_customer_free += parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
-//     let Menu = document.getElementsByClassName("Menu")[0];
-//     Menu.childNodes[1].innerText = cur_first_customer_name + "正在点菜，已点" + cur_first_customer_free + "元的菜";
-//   }
-//   else if(drinkcheckflag === 1) {
-//     for(let i=0;i<dishes.length;i++){
-//       dishes[i].disabled = false;
-//     }
-//     drinkcheckflag = 0;
-//     cur_first_customer_free -= parseInt(dishes[idx].parentNode.children[3].innerText.substr(1,));
-//     let Menu = document.getElementsByClassName("Menu")[0];
-//     Menu.childNodes[1].innerText = cur_first_customer_name + "正在点菜，已点" + cur_first_customer_free + "元的菜";
-//   }
-// }
-
-// let coldcheckflag = 0;
-// let hotcheckflag = 0;
-// let drinkcheckflag = 0;
-// //为每个checkbox添加eventlistener，便于进行菜单状态检查和下单按钮状态的修改
-// function setMenuCheckboxesClickEvents() {
-//   let colddishes = document.getElementsByClassName("colddishcheckbox-box");
-//   let hotdishes = document.getElementsByClassName("hotdishcheckbox-box");
-//   let drinks = document.getElementsByClassName("drinkcheckbox-box");
-
-//   for(let i=0;i<colddishes.length;i++){
-//     colddishes[i].addEventListener("click",changeColdFlagAndCheckStatus);
-//     colddishes[i].addEventListener("click",function(){changeColdCheckboxesStatus(i,colddishes);});
-//   }
-//   for(let i=0;i<hotdishes.length;i++){
-//     hotdishes[i].addEventListener("click",changeHotFlagAndCheckStatus);
-//     hotdishes[i].addEventListener("click",function(){changeHotCheckboxesStatus(i,hotdishes);});
-
-//   }
-//   for(let i=0;i<drinks.length;i++){
-//     drinks[i].addEventListener("click",changeDrinkFlagAndCheckStatus);
-//     drinks[i].addEventListener("click",function(){changeDrinkCheckboxesStatus(i,drinks);});
-//   }
-// }
