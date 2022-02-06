@@ -1,0 +1,90 @@
+<!-- chat/templates/chat/room.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+</head>
+<body>
+    <p id="user-name">{{ chat_user }}</p>
+    <br>
+    <div id="chat-log" cols="100" rows="20">
+    </div><br>
+    <input id="chat-message-input" type="text" size="100"><br>
+    <input id="chat-message-submit" type="button" value="Send">
+    {{ room_name|json_script:"room-name" }}
+    <script>
+        const roomName = JSON.parse(document.getElementById('room-name').textContent);
+        const cur_user_id = {{ chat_user.id }}
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/'
+            + roomName
+            + '/'
+        );
+<!--        接受来自后台的消息-->
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+<!--            document.querySelector('#chat-log').value += (data.user_name + ':' + data.message + '\n');-->
+            var vcenter = "\n";
+            var received_user_id = data.cur_user_id;
+            var vcurrent = document.getElementById("chat-log");
+            var newNodeCenter = document.createElement("div");
+            newNodeCenter.setAttribute("id","newadded");
+            newNodeCenter.innerHTML = vcenter;
+            vcurrent.appendChild(newNodeCenter);
+
+                var acur = document.getElementById("newadded");
+                var newAnodeCenter = document.createElement("a");
+                if(data.user_name == document.querySelector('#user-name').innerText){
+                    newAnodeCenter.setAttribute("href","");
+                }
+                else{
+
+                        newAnodeCenter.setAttribute("href","/chat/one2one/" + (cur_user_id).toString() + "_" + (received_user_id).toString() + "/");
+
+<!--                    newAnodeCenter.setAttribute("href","/chat/one2one/" + data.user_name + document.querySelector('#user-name').innerText + "/");-->
+                }
+                newAnodeCenter.innerHTML = (data.user_name);
+                acur.appendChild(newAnodeCenter);
+
+                var pcur = document.getElementById("newadded");
+                var newPnodeCenter = document.createElement("a");
+                newPnodeCenter.innerHTML = (' : ' + data.message);
+                pcur.appendChild(newPnodeCenter);
+
+            newNodeCenter.removeAttribute("id");
+
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {  // enter, return
+                document.querySelector('#chat-message-submit').click();
+            }
+        };
+<!--        传信息到后台-->
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            const user_name = document.querySelector('#user-name').innerText;
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'user_name': user_name,
+                'cur_user_id': cur_user_id,
+            }));
+            messageInputDom.value = '';
+        };
+
+<!--        document.querySelector('#room-name-submit').onclick = function(e) {-->
+<!--            var roomName = document.querySelector('#room-name-input').value;-->
+<!--            window.location.pathname = '/chat/' + roomName + '/';-->
+<!--        };-->
+    </script>
+</body>
+</html>
