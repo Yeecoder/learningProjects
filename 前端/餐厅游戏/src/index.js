@@ -304,6 +304,7 @@ let Customers = {
     let fatherArea = document.getElementsByClassName("newCustomers")[0];
     fatherArea.removeChild(fatherArea.childNodes[0]);
     Customers.showMenu(customerLookingMenuEle);
+
   },
   //移除之后显示菜单，并将刚刚移出队列的用户头像放置到菜单左上角
   showMenu : function(ele) {
@@ -401,9 +402,10 @@ let Customers = {
     father.removeChild(wrap);
     console.log("关闭菜单");
     Customers.cur_first_customer_free = 0;
-    Customers.cur_first_customer_name = undefined;
+    // Customers.cur_first_customer_name = undefined;
     let finishButton = document.getElementsByClassName("Finish")[0];
     finishButton.style.background = "linear-gradient(to top, #ded3ba 0%,#ded3ba 50%,#d3c6a5 51%,#d3c6a5 100%)";
+    Customers.showFinishedAndWaitingAlarm();
     finishButton.removeEventListener("click",Customers.finishButton);
   },
   //将顾客送入座位
@@ -414,6 +416,7 @@ let Customers = {
         let newimg = document.createElement('img');
         newimg.src =  cur_first_customer.children[0].children[0].getAttribute("src");
         allSets[i].appendChild(newimg);
+        allSets[i].style.background = "linear-gradient(to top, #ff2626 0%,#ff2626 50%,#b20000 51%,#b20000 100%)";
         break;
       }
     }
@@ -613,5 +616,42 @@ let Customers = {
       let finishButton = document.getElementsByClassName("Finish")[0];
       finishButton.style.background = "linear-gradient(to top, #ded3ba 0%,#ded3ba 50%,#d3c6a5 51%,#d3c6a5 100%)";
     }
+  },
+  showFinishedAndWaitingAlarm : function() {
+    let father = document.getElementsByClassName("mainGame")[0];
+    let finishedAlarm = document.createElement("div");
+    finishedAlarm.setAttribute("class","FinishedAndWaitingAlarm");
+    let contextEle1 = document.createElement("div");
+    contextEle1.setAttribute("class","FinishedAlarm-context1");
+    contextEle1.innerHTML = Customers.cur_first_customer_name + "完成点餐，等候用餐";
+    let contextEle2 = document.createElement("div");
+    contextEle2.setAttribute("class","FinishedAlarm-context2");
+    contextEle2.innerHTML = "疯狂点击厨师头像可以加速做菜";
+    finishedAlarm.appendChild(contextEle1);
+    finishedAlarm.appendChild(contextEle2);
+    father.appendChild(finishedAlarm);
+
+    function setFinishedAlarmHidden() {
+      finishedAlarm.style.display = "none";
+        handle = 1;
+    }
+    let handle = 0;
+    finishedAlarm.addEventListener("click",setFinishedAlarmHidden);
+    setTimeout(function () {
+        if(handle === 0) {
+          setFinishedAlarmHidden();
+        }
+        else {
+            ;
+        }
+    }, 1000);
+    Customers.cur_first_customer_name = undefined;
+  },
+  addWaitingStatus : function() {
+    ;
   }
+}
+
+let Chefs = {
+
 }

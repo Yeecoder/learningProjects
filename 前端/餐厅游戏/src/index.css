@@ -461,3 +461,36 @@ body{
     width: 100%;
     height: 100%;
 }
+
+.FinishedAndWaitingAlarm {
+    top: 40%;
+    left: 0%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 5px solid;
+    border-color: #fff;
+    border-radius: 25px;
+    background-color: #d9e67d;
+    position: absolute;
+    z-index: 3;
+    width: -webkit-fill-available;
+}
+
+.FinishedAlarm-context1 {
+    margin: 20px;
+    font-size: 18px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6700;
+}
+.FinishedAlarm-context2 {
+    margin: 20px;
+    font-size: 18px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6700;
+}
