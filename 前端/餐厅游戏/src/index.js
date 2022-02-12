@@ -92,6 +92,20 @@ function randomNum(minNum,maxNum){
   } 
 } 
 
+//顾客和座位、顾客和菜单的对应关系
+customerAndSet = {};
+customerAndMenu = {};
+
+function removeByVal(arrylist , val) {
+	for(var i = 0; i < arrylist .length; i++) {
+		if(arrylist [i] == val) {
+			arrylist .splice(i, 1);
+			break;
+		}
+	}
+}
+
+
 let Customers = {
   //等候区大小，每次创建完新的等候区顾客时自减一，点击等候区后自增一
   waitingCustomersLimit : 6,
@@ -129,7 +143,7 @@ let Customers = {
   createCustomer : function() {
     if(Customers.waitingCustomersLimit > 1) {
       //设置随机时间新建顾客，即300-500毫秒调用一次
-      let randomCreateTime = randomNum(300,500);
+      let randomCreateTime = randomNum(3000,15000);
       setTimeout("Customers.createCustomer()", randomCreateTime);
     }
     else {
@@ -330,7 +344,10 @@ let Customers = {
     father.appendChild(wrap);
 
     Menu.childNodes[1].innerText = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
-
+    //当唤起点菜面板时，判断是否已经有了顾客和菜的对应关系，如果没有，则添加
+    if(Customers.cur_first_customer_name in customerAndMenu === false) {
+      customerAndMenu[Customers.cur_first_customer_name] = [];
+    }
     Customers.addEventListenerToEveryCheckbox();
     Menu.style.display = '';
     cover.style.display = '';
@@ -416,8 +433,58 @@ let Customers = {
         let newimg = document.createElement('img');
         newimg.src =  cur_first_customer.children[0].children[0].getAttribute("src");
         allSets[i].appendChild(newimg);
-        allSets[i].style.background = "linear-gradient(to top, #ff2626 0%,#ff2626 50%,#b20000 51%,#b20000 100%)";
+        allSets[i].style.background = "linear-gradient(to right, #ff2626 0%,#ff2626 50%,#b20000 51%,#b20000 100%)";
+        //当点击完成点餐时，判断是否已经有了顾客和座位的对应关系，如果没有，则添加
+        //并且只有在顾客进入座位时才需要添加，顾客选择不吃了离开餐厅，不需要添加对应关系
+        if(Customers.cur_first_customer_name in customerAndSet === false) {
+          customerAndSet[Customers.cur_first_customer_name] = i;
+        }
+        //创建进度条
+        let wrap = allSets[i].parentNode;
+        let newbox = document.createElement("div");
+        newbox.setAttribute("class","customerprogress-box"+i);
+        newbox.style.cssText = `position: absolute;
+        top: 20%;
+        left: 60%;
+        width: 100px;
+        background-color: #ff2626;
+        border: 2px solid;
+        border-color: #fff;
+        border-radius: 25px;`;
+        let newboxtext = document.createElement("div");
+        newboxtext.setAttribute("class","customerprogress-text"+i);
+        newboxtext.style.cssText = `width: 0%;
+        height: 30px;
+        background-color: #b20000;
+        text-align: center;
+        line-height: 30px;
+        color: white;
+        border: 2px 0px 2px 0 solid;
+        border-color: #fff;
+        border-radius: 25px;`;
+        //初始进度条显示内容为0%
+        newboxtext.innerHTML = "0%";
+        newbox.appendChild(newboxtext);
+        wrap.appendChild(newbox);
+        Customers.moveCustomerProgress(i);
+        Chefs.checkHaveMenu();
         break;
+      }
+    }
+  },
+  moveCustomerProgress : function(index) {
+    let elem = document.getElementsByClassName("CustomerWrap")[index].querySelector(".customerprogress-text"+index);   
+    let width = 0;
+    let moveCustomerProgressId = setInterval(moveCustomerframe, Customers.waitingTime);
+    function moveCustomerframe() {
+      if (width >= 10) {
+        clearInterval(moveCustomerProgressId);
+        elem.style.backgroundColor = "#535362";
+        elem.innerHTML = "<del>" + width * 1  + '%' + "</del>";
+      } else {
+        width++; 
+        elem.style.width = width*10 + '%'; 
+        elem.innerHTML = width * 1  + '%';
       }
     }
   },
@@ -430,6 +497,7 @@ let Customers = {
         let menuTitle = document.getElementsByClassName("Menu-title")[0];
         Customers.cur_first_customer_free += parseInt(cold[i].parentNode.children[3].innerText.substr(1,));
         menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+        customerAndMenu[Customers.cur_first_customer_name].push(cold[i].parentNode.children[1].innerText);
       }
     }
   },
@@ -441,6 +509,7 @@ let Customers = {
         let menuTitle = document.getElementsByClassName("Menu-title")[0];
         Customers.cur_first_customer_free += parseInt(hot[i].parentNode.children[3].innerText.substr(1,));
         menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+        customerAndMenu[Customers.cur_first_customer_name].push(hot[i].parentNode.children[1].innerText);
       }
     }
   },
@@ -452,6 +521,7 @@ let Customers = {
         let menuTitle = document.getElementsByClassName("Menu-title")[0];
         Customers.cur_first_customer_free += parseInt(drink[i].parentNode.children[3].innerText.substr(1,));
         menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+        customerAndMenu[Customers.cur_first_customer_name].push(drink[i].parentNode.children[1].innerText);
       }
     }
   },
@@ -481,6 +551,7 @@ let Customers = {
       let menuTitle = document.getElementsByClassName("Menu-title")[0];
       Customers.cur_first_customer_free -= parseInt(cold[Customers.coldSelectedIdx].parentNode.children[3].innerText.substr(1,));
       menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+      removeByVal(customerAndMenu[Customers.cur_first_customer_name],cold[Customers.coldSelectedIdx].parentNode.children[1].innerText);
       Customers.coldSelectedIdx = undefined;
     }
   },
@@ -509,6 +580,7 @@ let Customers = {
       let menuTitle = document.getElementsByClassName("Menu-title")[0];
       Customers.cur_first_customer_free -= parseInt(hot[Customers.hotSelectedIdx].parentNode.children[3].innerText.substr(1,));
       menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+      removeByVal(customerAndMenu[Customers.cur_first_customer_name],hot[Customers.hotSelectedIdx].parentNode.children[1].innerText);
       Customers.hotSelectedIdx = undefined;
     }
   },
@@ -537,6 +609,7 @@ let Customers = {
       let menuTitle = document.getElementsByClassName("Menu-title")[0];
       Customers.cur_first_customer_free -= parseInt(drink[Customers.drinkSelectedIdx].parentNode.children[3].innerText.substr(1,));
       menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
+      removeByVal(customerAndMenu[Customers.cur_first_customer_name],drink[Customers.drinkSelectedIdx].parentNode.children[1].innerText);
       Customers.drinkSelectedIdx = undefined;
     }
   },
@@ -653,5 +726,79 @@ let Customers = {
 }
 
 let Chefs = {
+  //获取当前厨师的个数
+  chefsNum : document.getElementsByClassName("Chef").length,
 
+  checkHaveMenu : function() {
+    for(let key in customerAndMenu) {
+      let item = customerAndMenu[key];
+      if(item.length !== 0) {
+        Chefs.cook();
+      }
+    }
+  },
+  cook : function() {
+    let allChefs = document.getElementsByClassName("Chef");
+    for(let i = 0;i<allChefs.length;i++) {
+      if(allChefs[i].parentNode.childNodes[3] === undefined){
+        allChefs[i].style.background = "linear-gradient(to right, #ff9122 0%,#ff9122 50%,#d96d00 51%,#d96d00 100%)";
+
+        //创建进度条
+        let wrap = allChefs[i].parentNode;
+        let newbox = document.createElement("div");
+        newbox.setAttribute("class","chefprogress-box"+i);
+        newbox.style.cssText = `position: absolute;
+        top: 70%;
+        left: 15%;
+        width: 100px;
+        background-color: #ff9122;
+        border: 2px solid;
+        border-color: #fff;
+        border-radius: 25px;`;
+        let newboxtext = document.createElement("div");
+        newboxtext.setAttribute("class","chefprogress-text"+i);
+        newboxtext.style.cssText = `width: 0%;
+        height: 30px;
+        background-color: #d96d00;
+        text-align: center;
+        line-height: 30px;
+        color: white;
+        border: 2px 0px 2px 0 solid;
+        border-color: #fff;
+        border-radius: 25px;`;
+        //初始进度条显示内容为0%
+        let curMenu = "";
+        for(let key in customerAndMenu) {
+          if(customerAndMenu[key].length !== 0) {
+            curMenu = customerAndMenu[key].shift();
+            break;
+          }
+          else {
+            ;
+          }
+        }
+        newboxtext.innerHTML = curMenu;
+        newbox.appendChild(newboxtext);
+        wrap.appendChild(newbox);
+        Chefs.moveChefProgress(i,curMenu);
+        break;
+      }
+    }
+  },
+  moveChefProgress : function(index,menu) {
+    let elem = document.getElementsByClassName("ChefWrap")[index].querySelector(".chefprogress-text"+index);   
+    let width = 0;
+    let moveChefProgressId = setInterval(moveChefframe, Customers.waitingTime);
+    function moveChefframe() {
+      if (width >= 10) {
+        clearInterval(moveChefProgressId);
+        elem.style.backgroundColor = "#d96d00";
+        elem.innerHTML = menu;
+      } else {
+        width++; 
+        elem.style.width = width*10 + '%'; 
+        elem.innerHTML = menu;
+      }
+    }
+  },
 }
