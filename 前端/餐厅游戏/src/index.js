@@ -95,6 +95,8 @@ function randomNum(minNum,maxNum){
 //顾客和座位、顾客和菜单的对应关系
 customerAndSet = {};
 customerAndMenu = {};
+//菜单和顾客的队列
+curMenuAndCustomerQue = [];
 
 function removeByVal(arrylist , val) {
 	for(var i = 0; i < arrylist .length; i++) {
@@ -415,6 +417,15 @@ let Customers = {
     Menu.style.display = 'none';
     cover.style.display = 'none';
     let father = document.getElementsByClassName("mainGame")[0];
+    //将点的菜和对应的顾客添加到菜品和顾客队列中
+    for(let c=0;c<customerAndMenu[Customers.cur_first_customer_name].length;c++) {
+      // tmp = {};
+      // tmp[customerAndMenu[Customers.cur_first_customer_name][c]] = Customers.cur_first_customer_name;
+      tmp = [];
+      tmp.push(customerAndMenu[Customers.cur_first_customer_name][c]);
+      tmp.push(Customers.cur_first_customer_name);
+      curMenuAndCustomerQue.push(tmp);
+    }
     Customers.getFreeSet(wrap);
     father.removeChild(wrap);
     console.log("关闭菜单");
@@ -436,55 +447,63 @@ let Customers = {
         allSets[i].style.background = "linear-gradient(to right, #ff2626 0%,#ff2626 50%,#b20000 51%,#b20000 100%)";
         //当点击完成点餐时，判断是否已经有了顾客和座位的对应关系，如果没有，则添加
         //并且只有在顾客进入座位时才需要添加，顾客选择不吃了离开餐厅，不需要添加对应关系
-        if(Customers.cur_first_customer_name in customerAndSet === false) {
-          customerAndSet[Customers.cur_first_customer_name] = i;
-        }
+        customerAndSet[Customers.cur_first_customer_name] = i;
         //创建进度条
         let wrap = allSets[i].parentNode;
-        let newbox = document.createElement("div");
-        newbox.setAttribute("class","customerprogress-box"+i);
-        newbox.style.cssText = `position: absolute;
-        top: 20%;
-        left: 60%;
-        width: 100px;
-        background-color: #ff2626;
-        border: 2px solid;
-        border-color: #fff;
-        border-radius: 25px;`;
-        let newboxtext = document.createElement("div");
-        newboxtext.setAttribute("class","customerprogress-text"+i);
-        newboxtext.style.cssText = `width: 0%;
-        height: 30px;
-        background-color: #b20000;
-        text-align: center;
-        line-height: 30px;
-        color: white;
-        border: 2px 0px 2px 0 solid;
-        border-color: #fff;
-        border-radius: 25px;`;
-        //初始进度条显示内容为0%
-        newboxtext.innerHTML = "0%";
-        newbox.appendChild(newboxtext);
-        wrap.appendChild(newbox);
-        Customers.moveCustomerProgress(i);
+        let progresswrap = document.createElement("div");
+        progresswrap.setAttribute("class","customerprogresswrap");
+        progresswrap.style.cssText = `    display: flex;
+        flex-direction: column;
+        height: 90px;
+        position: absolute;
+        top: 10px;
+        left: 60%;`;
+        wrap.appendChild(progresswrap);
+        for(let me=0;me<customerAndMenu[Customers.cur_first_customer_name].length;me++) {
+          let newbox = document.createElement("div");
+          newbox.setAttribute("class","customerprogress-box"+i+customerAndMenu[Customers.cur_first_customer_name][me]);
+          newbox.style.cssText = `
+          width: 70px;
+          background-color: #ff2626;
+          border: 2px solid;
+          border-color: #fff;
+          border-radius: 25px;
+          position: relative`;
+          let newboxtext = document.createElement("div");
+          newboxtext.setAttribute("class","customerprogress-text"+i+customerAndMenu[Customers.cur_first_customer_name][me]);
+          newboxtext.style.cssText = `width: 0%;
+          height: 30px;
+          background-color: #b20000;
+          text-align: center;
+          line-height: 30px;
+          color: white;
+          border: 2px 0px 2px 0 solid;
+          border-color: #fff;
+          border-radius: 25px;`;
+          //初始进度条显示内容为0%
+          newboxtext.innerHTML = customerAndMenu[Customers.cur_first_customer_name][me];
+          newbox.appendChild(newboxtext);
+          progresswrap.appendChild(newbox);
+          Customers.moveCustomerProgress(i,customerAndMenu[Customers.cur_first_customer_name][me]);
+        }
         Chefs.checkHaveMenu();
         break;
       }
     }
   },
-  moveCustomerProgress : function(index) {
-    let elem = document.getElementsByClassName("CustomerWrap")[index].querySelector(".customerprogress-text"+index);   
+  moveCustomerProgress : function(index,me) {
+    let elem = document.getElementsByClassName("CustomerWrap")[index].querySelector(".customerprogress-text"+index+me);   
     let width = 0;
-    let moveCustomerProgressId = setInterval(moveCustomerframe, Customers.waitingTime);
+    let moveCustomerProgressId = setInterval(moveCustomerframe, 500);
     function moveCustomerframe() {
-      if (width >= 10) {
+      if (width >= 100) {
         clearInterval(moveCustomerProgressId);
         elem.style.backgroundColor = "#535362";
-        elem.innerHTML = "<del>" + width * 1  + '%' + "</del>";
+        elem.innerHTML = me;
       } else {
         width++; 
-        elem.style.width = width*10 + '%'; 
-        elem.innerHTML = width * 1  + '%';
+        elem.style.width = width + '%'; 
+        elem.innerHTML = me;
       }
     }
   },
@@ -729,24 +748,30 @@ let Chefs = {
   //获取当前厨师的个数
   chefsNum : document.getElementsByClassName("Chef").length,
 
+  //
   checkHaveMenu : function() {
-    for(let key in customerAndMenu) {
-      let item = customerAndMenu[key];
-      if(item.length !== 0) {
+    if(curMenuAndCustomerQue.length !== 0) {
+      if(Chefs.chefsNum !== 0) {
+        Chefs.chefsNum -= 1;
         Chefs.cook();
       }
+      else {
+        // console.log("所有的厨师都在工作了！请等一等！！！");
+        ;
+      }
     }
+    setTimeout("Chefs.checkHaveMenu()", 1000);
   },
   cook : function() {
     let allChefs = document.getElementsByClassName("Chef");
     for(let i = 0;i<allChefs.length;i++) {
       if(allChefs[i].parentNode.childNodes[3] === undefined){
         allChefs[i].style.background = "linear-gradient(to right, #ff9122 0%,#ff9122 50%,#d96d00 51%,#d96d00 100%)";
-
+        let curMenu = curMenuAndCustomerQue.shift();
         //创建进度条
         let wrap = allChefs[i].parentNode;
         let newbox = document.createElement("div");
-        newbox.setAttribute("class","chefprogress-box"+i);
+        newbox.setAttribute("class","chefprogress-box"+i+curMenu[0]);
         newbox.style.cssText = `position: absolute;
         top: 70%;
         left: 15%;
@@ -756,7 +781,7 @@ let Chefs = {
         border-color: #fff;
         border-radius: 25px;`;
         let newboxtext = document.createElement("div");
-        newboxtext.setAttribute("class","chefprogress-text"+i);
+        newboxtext.setAttribute("class","chefprogress-text"+i+curMenu[0]);
         newboxtext.style.cssText = `width: 0%;
         height: 30px;
         background-color: #d96d00;
@@ -766,39 +791,123 @@ let Chefs = {
         border: 2px 0px 2px 0 solid;
         border-color: #fff;
         border-radius: 25px;`;
-        //初始进度条显示内容为0%
-        let curMenu = "";
-        for(let key in customerAndMenu) {
-          if(customerAndMenu[key].length !== 0) {
-            curMenu = customerAndMenu[key].shift();
-            break;
-          }
-          else {
-            ;
-          }
-        }
-        newboxtext.innerHTML = curMenu;
+        //初始进度条显示内容
+
+        newboxtext.innerHTML = curMenu[0];
+        //将进度条加入到页面中
         newbox.appendChild(newboxtext);
         wrap.appendChild(newbox);
+        //移动厨师对应的进度条
         Chefs.moveChefProgress(i,curMenu);
         break;
       }
     }
   },
   moveChefProgress : function(index,menu) {
-    let elem = document.getElementsByClassName("ChefWrap")[index].querySelector(".chefprogress-text"+index);   
+    let elem = document.getElementsByClassName("ChefWrap")[index].querySelector(".chefprogress-text"+index+menu[0]);   
     let width = 0;
     let moveChefProgressId = setInterval(moveChefframe, Customers.waitingTime);
     function moveChefframe() {
       if (width >= 10) {
         clearInterval(moveChefProgressId);
         elem.style.backgroundColor = "#d96d00";
-        elem.innerHTML = menu;
+        elem.innerHTML = menu[0];
+        //厨师做完菜后在厨师头像左下角添加完成的图标
+        let chefFather = document.getElementsByClassName("Chef")[index];
+        let finishMenuImg = document.createElement("img");
+        finishMenuImg.setAttribute("class","finishMenuImg"+index);
+        finishMenuImg.style.cssText = `    position: absolute;
+        height: 60px;
+        width: 60px;
+        top: 40%;
+        left: 10%;`;
+        finishMenuImg.setAttribute("src","../imgs/iconfinder_Food-Dome_379366.png");
+        chefFather.appendChild(finishMenuImg);
+        //在对应菜的顾客所点的这个菜的右侧添加，上菜图标
+        //首先获取菜对应的顾客
+        //menu[1]
+        //根据顾客和座位的对应关系找到座位的index
+        let finishedMenuSetIdx = customerAndSet[menu[1]];
+        //同时有座位的index和菜名，就可以定位到厨师刚刚完成的这道菜所对应的顾客的菜单
+        //为已经完成的顾客点的菜添加图标
+        let customerFather = document.getElementsByClassName("customerprogress-box" + finishedMenuSetIdx + menu[0])[0];
+        let canEatBackGround = document.createElement("div");
+        canEatBackGround.style.cssText = `
+        position: absolute;
+        left: 70px;
+        top: 0%;
+        height: 30px;
+        width: 30px;
+        border: solid;
+        border-color: #fff;
+        border-radius: 50%;
+        background: linear-gradient(to right, #ff2626 0%,#ff2626 50%,#b20000 51%,#b20000 100%);`;
+        canEatBackGround.setAttribute("class","canEatBackGround"+finishedMenuSetIdx+menu[0]);
+        let canEatImg = document.createElement("img");
+        canEatImg.setAttribute("class","canEatImg"+finishedMenuSetIdx+menu[0]);
+        canEatImg.setAttribute("src","..//imgs/iconfinder_Food-Dome_379366.png");
+        canEatImg.style.cssText = `
+        height: 100%;
+        width: 100%;
+        `;
+        canEatBackGround.appendChild(canEatImg);
+        customerFather.appendChild(canEatBackGround);
+        //给顾客点的菜的完成图标添加EventListener，点击后使厨师的状态回到空闲，顾客进入吃饭状态
+        customerFather.addEventListener("click",function () {Chefs.changeChefBackToFreeAndCustomerToEating(menu,customerFather,finishedMenuSetIdx,index);});
       } else {
         width++; 
         elem.style.width = width*10 + '%'; 
-        elem.innerHTML = menu;
+        elem.innerHTML = menu[0];
       }
     }
   },
+  //使厨师的状态回到空闲，顾客进入吃饭状态
+  //传入当前顾客部分的进度条customerprogress-box、当前菜可以吃的图标、当前顾客的座位index、
+  //做当前这个菜的厨师、这个厨师的index
+  changeChefBackToFreeAndCustomerToEating : function(menu,cusfather,cusindex,index) {
+    let cuscaneat = cusfather.children[1];
+    cusfather.removeChild(cuscaneat);
+    //从页面移除当前菜的等待的进度条
+    let cuswrap = cusfather.parentNode;
+    cuswrap.removeChild(cusfather);
+    //添加新的吃菜进度条
+    try {
+      let newbox = document.createElement("div");
+      newbox.setAttribute("class","customerprogress-box"+cusindex+menu[0]);
+      newbox.style.cssText = `
+      width: 70px;
+      background-color: #ff2626;
+      border: 2px solid;
+      border-color: #fff;
+      border-radius: 25px;
+      position: relative`;
+      let newboxtext = document.createElement("div");
+      newboxtext.setAttribute("class","customerprogress-text"+cusindex+menu[0]);
+      newboxtext.style.cssText = `width: 0%;
+      height: 30px;
+      background-color: #b20000;
+      text-align: center;
+      line-height: 30px;
+      color: white;
+      border: 2px 0px 2px 0 solid;
+      border-color: #fff;
+      border-radius: 25px;`;
+      //初始进度条显示内容为0%
+      newboxtext.innerHTML = menu[0];
+      newbox.appendChild(newboxtext);
+      cuswrap.appendChild(newbox);
+      Customers.moveCustomerProgress(cusindex,menu[0]);
+    }
+    catch(err) {
+      ;
+    }
+
+
+    let cheffather = document.getElementsByClassName("Chef")[index];
+    cheffather.style.background = "linear-gradient(to right, #dddddd 0%,#dddddd 50%,#aaaaaa 51%,#aaaaaa 100%)";
+    cheffather.removeChild(cheffather.children[1]);
+    let chefwrap = cheffather.parentNode;
+    chefwrap.removeChild(chefwrap.children[1]);
+    
+  }
 }
