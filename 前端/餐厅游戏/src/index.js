@@ -73,6 +73,7 @@ function hiddwnConfirm() {
     GlobalTimeSet.StartTimeInterval();
     Customers.createCustomer();
     Customers.addELToWaitingCustomers();
+    Chefs.addEventListenerToAddChef();
 }
 
 function randomNum(minNum,maxNum){ 
@@ -94,9 +95,34 @@ function randomNum(minNum,maxNum){
 
 //顾客和座位、顾客和菜单的对应关系
 customerAndSet = {};
+setAndCustomer = {};
 customerAndMenu = {};
+//顾客的菜、顾客名字和做菜的厨师之间的对应关系，可以唯一确定一个厨师的位置
+menuAndCustomerAndChef = {};
 //菜单和顾客的队列
 curMenuAndCustomerQue = [];
+//顾客点的菜的数量
+customerAndMenuNum = {};
+//顾客超时的菜的数量
+customerAndMenuOutTimeNum = {};
+//顾客吃完的菜的数量
+customerAndMenuHaveEatNum = {};
+//顾客和消费的对应关系
+customerAndFree = {};
+
+//菜和对应的成本和售价
+menuCostAndSold = {
+  "凉拌SAN" : [3,6],
+  "冷切DOM" : [2,4],
+  "UL炖LI" : [6,12],
+  "红烧HEAD" : [7,15],
+  "酥炸Echarts" : [9,18],
+  "炙烤CSS" : [8,16],
+  "清蒸DIV" : [6,12],
+  "鲜榨flex" : [2,5],
+  "小程序奶茶" : [3,6]
+};
+
 
 function removeByVal(arrylist , val) {
 	for(var i = 0; i < arrylist .length; i++) {
@@ -141,6 +167,8 @@ let Customers = {
   drinkChecked : 0,
   //正在点菜的顾客的费用
   cur_first_customer_free : 0,
+  //顾客等待定时器
+  waitingTimer : {},
   //生成顾客
   createCustomer : function() {
     if(Customers.waitingCustomersLimit > 1) {
@@ -349,6 +377,7 @@ let Customers = {
     //当唤起点菜面板时，判断是否已经有了顾客和菜的对应关系，如果没有，则添加
     if(Customers.cur_first_customer_name in customerAndMenu === false) {
       customerAndMenu[Customers.cur_first_customer_name] = [];
+      customerAndMenuNum[Customers.cur_first_customer_name] = 0;
     }
     Customers.addEventListenerToEveryCheckbox();
     Menu.style.display = '';
@@ -448,10 +477,11 @@ let Customers = {
         //当点击完成点餐时，判断是否已经有了顾客和座位的对应关系，如果没有，则添加
         //并且只有在顾客进入座位时才需要添加，顾客选择不吃了离开餐厅，不需要添加对应关系
         customerAndSet[Customers.cur_first_customer_name] = i;
+        setAndCustomer[i] = Customers.cur_first_customer_name;
         //创建进度条
         let wrap = allSets[i].parentNode;
         let progresswrap = document.createElement("div");
-        progresswrap.setAttribute("class","customerprogresswrap");
+        progresswrap.setAttribute("class","customerprogresswrap" + Customers.cur_first_customer_name);
         progresswrap.style.cssText = `    display: flex;
         flex-direction: column;
         height: 90px;
@@ -486,6 +516,7 @@ let Customers = {
           progresswrap.appendChild(newbox);
           Customers.moveCustomerProgress(i,customerAndMenu[Customers.cur_first_customer_name][me]);
         }
+        //将顾客送入座位后，检查当前是否有厨师是空闲的，如果有空闲的，那么将
         Chefs.checkHaveMenu();
         break;
       }
@@ -495,17 +526,121 @@ let Customers = {
     let elem = document.getElementsByClassName("CustomerWrap")[index].querySelector(".customerprogress-text"+index+me);   
     let width = 0;
     let moveCustomerProgressId = setInterval(moveCustomerframe, 500);
+    Customers.waitingTimer[setAndCustomer[index]+me] = moveCustomerProgressId;
     function moveCustomerframe() {
       if (width >= 100) {
-        clearInterval(moveCustomerProgressId);
+        // clearInterval(moveCustomerProgressId);
+        Customers.stopCustomerProgress(Customers.waitingTimer[setAndCustomer[index]+me]);
         elem.style.backgroundColor = "#535362";
         elem.innerHTML = me;
+        if(setAndCustomer[index] in customerAndMenuOutTimeNum === false) {
+          customerAndMenuOutTimeNum[setAndCustomer[index]] = 1;
+        }
+        else {
+          customerAndMenuOutTimeNum[setAndCustomer[index]] += 1;
+        }
+        function removeMenuFromChef(chefindex,idx,menuName) {
+          let cheffather = document.getElementsByClassName("Chef")[chefindex];
+          cheffather.style.background = "linear-gradient(to right, #dddddd 0%,#dddddd 50%,#aaaaaa 51%,#aaaaaa 100%)";
+          cheffather.removeChild(cheffather.children[1]);
+          let chefwrap = cheffather.parentNode;
+          //使对应的厨师恢复到空闲状态后，需要将空闲厨师计数器自增一
+          Chefs.chefsNum += 1;
+          chefwrap.removeChild(chefwrap.children[1]);
+          let icon = document.getElementsByClassName("canEatBackGround"+idx+menuName)[0];
+          let iconFather = icon.parentNode;
+          iconFather.removeChild(icon);
+        };
+        //当顾客等待的耐心进度条走完之后，停止计数，等待5秒，然后删除厨师做完的这道菜，将可用的厨师数量+1
+        //为了定位到对应的厨师的index，需要使用当前的菜和顾客名字
+        let chefidx = menuAndCustomerAndChef[me+setAndCustomer[index]];
+        //关于顾客耐心条走完之后等待的5s时间，可以加一个，如果在这个时间内点了上菜，那么顾客不会支付这道菜的费用的功能
+        //目前先不做，先做基本功能，所以把等待时间设置短一些，方便调试
+        setTimeout(function () {
+          removeMenuFromChef(chefidx,index,me);
+        }, 500);
+        //在每次顾客对某一道菜的忍耐度走完并且等候5秒之后，即顾客的这道菜必然不会上了
+        //检查是不是所有的菜都没有上并且耐心条都走完了
+        //如果是，那么在顾客的左下角添加安慰图标，并对图标增加EventListener
+        //并且，如果有菜没有上，那么必然customerAndMenuOutTimeNum不为空，所以不需要进行检查
+        if(customerAndMenuOutTimeNum[setAndCustomer[index]] === customerAndMenuNum[setAndCustomer[index]]) {
+          let cus = document.getElementsByClassName("Customer")[index];
+          cus.style.background = "linear-gradient(to right, #661a00 0%,#661a00 50%,#401000 51%,#401000 100%)";
+          let comfortImg = document.createElement("img");
+          comfortImg.setAttribute("src","../imgs/iconfinder_Instagram_UI-07_2315589.png");
+          comfortImg.style.cssText = `
+          width: 60px;
+          height: 60px;
+          position: absolute;
+          left: 10px;
+          top: 60px;`;
+          cus.appendChild(comfortImg);
+          //给费用图标添加EventListener，点击后在总资金中增加该顾客对应的费用
+          //并从顾客列表中移除该顾客，空座位数量加一
+          comfortImg.addEventListener("click",(function(){Customers.removeComfortedCustomer(index);}));
+        }
+
       } else {
         width++; 
         elem.style.width = width + '%'; 
         elem.innerHTML = me;
       }
     }
+  },
+  removeComfortedCustomer : function(cusidx) {
+    let cus = document.getElementsByClassName("Customer")[cusidx];
+    let wrap = document.getElementsByClassName("customerprogresswrap"+setAndCustomer[cusidx])[0];
+    cus.removeChild(cus.children[1]);
+    cus.removeChild(cus.children[0]);
+    let father = cus.parentNode;
+    father.removeChild(wrap);
+    cus.style.background = "linear-gradient(to right, #dddddd 0%,#dddddd 50%,#aaaaaa 51%,#aaaaaa 100%)";
+    //将顾客移除、座位复原后，出现用户失望离去的提示框
+    let mainfather = document.getElementsByClassName("mainGame")[0];
+    let customerLeaveAlarm = document.createElement("div");
+    customerLeaveAlarm.setAttribute("class","CustomerLeaveAlarm"+setAndCustomer[cusidx]);
+    customerLeaveAlarm.style.cssText = `    top: 40%;
+    left: 0%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 5px solid;
+    border-color: #fff;
+    border-radius: 25px;
+    background-color: #ffb399;
+    position: absolute;
+    z-index: 3;
+    width: -webkit-fill-available;`;
+    let leaveContextEle = document.createElement("div");
+    leaveContextEle.setAttribute("class","CustomerLeaveAlarm-context"+setAndCustomer[cusidx]);
+    leaveContextEle.style.cssText = `    margin: 20px;
+    font-size: 18px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6700;`;
+    leaveContextEle.innerHTML = setAndCustomer[cusidx] + "失望的离开，别再让客人挨饿了";
+    customerLeaveAlarm.appendChild(leaveContextEle);
+    mainfather.appendChild(customerLeaveAlarm);
+    function removeCustomerLeaveAlarm() {
+      mainfather.removeChild(customerLeaveAlarm);
+      handle = 1;
+    }
+    let handle = 0;
+    customerLeaveAlarm.addEventListener("click",removeCustomerLeaveAlarm);
+    setTimeout(function () {
+        if(handle === 0) {
+          removeCustomerLeaveAlarm();
+        }
+        else {
+            ;
+        }
+    }, 1000);
+  },
+  stopCustomerProgress : function(ProgressId) {
+    clearInterval(ProgressId);
   },
   //检查所有checkbox的状态
   checkColdCheckboxStatus : function() {
@@ -517,6 +652,7 @@ let Customers = {
         Customers.cur_first_customer_free += parseInt(cold[i].parentNode.children[3].innerText.substr(1,));
         menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
         customerAndMenu[Customers.cur_first_customer_name].push(cold[i].parentNode.children[1].innerText);
+        customerAndMenuNum[Customers.cur_first_customer_name] += 1;
       }
     }
   },
@@ -529,6 +665,7 @@ let Customers = {
         Customers.cur_first_customer_free += parseInt(hot[i].parentNode.children[3].innerText.substr(1,));
         menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
         customerAndMenu[Customers.cur_first_customer_name].push(hot[i].parentNode.children[1].innerText);
+        customerAndMenuNum[Customers.cur_first_customer_name] += 1;
       }
     }
   },
@@ -541,6 +678,7 @@ let Customers = {
         Customers.cur_first_customer_free += parseInt(drink[i].parentNode.children[3].innerText.substr(1,));
         menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
         customerAndMenu[Customers.cur_first_customer_name].push(drink[i].parentNode.children[1].innerText);
+        customerAndMenuNum[Customers.cur_first_customer_name] += 1;
       }
     }
   },
@@ -571,6 +709,7 @@ let Customers = {
       Customers.cur_first_customer_free -= parseInt(cold[Customers.coldSelectedIdx].parentNode.children[3].innerText.substr(1,));
       menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
       removeByVal(customerAndMenu[Customers.cur_first_customer_name],cold[Customers.coldSelectedIdx].parentNode.children[1].innerText);
+      customerAndMenuNum[Customers.cur_first_customer_name] -= 1;
       Customers.coldSelectedIdx = undefined;
     }
   },
@@ -600,6 +739,7 @@ let Customers = {
       Customers.cur_first_customer_free -= parseInt(hot[Customers.hotSelectedIdx].parentNode.children[3].innerText.substr(1,));
       menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
       removeByVal(customerAndMenu[Customers.cur_first_customer_name],hot[Customers.hotSelectedIdx].parentNode.children[1].innerText);
+      customerAndMenuNum[Customers.cur_first_customer_name] -= 1;
       Customers.hotSelectedIdx = undefined;
     }
   },
@@ -629,6 +769,7 @@ let Customers = {
       Customers.cur_first_customer_free -= parseInt(drink[Customers.drinkSelectedIdx].parentNode.children[3].innerText.substr(1,));
       menuTitle.innerHTML = Customers.cur_first_customer_name + "正在点菜，已点" + Customers.cur_first_customer_free + "元的菜";
       removeByVal(customerAndMenu[Customers.cur_first_customer_name],drink[Customers.drinkSelectedIdx].parentNode.children[1].innerText);
+      customerAndMenuNum[Customers.cur_first_customer_name] -= 1;
       Customers.drinkSelectedIdx = undefined;
     }
   },
@@ -747,7 +888,10 @@ let Customers = {
 let Chefs = {
   //获取当前厨师的个数
   chefsNum : document.getElementsByClassName("Chef").length,
-
+    //厨师做菜定时器
+    cookingTimer : {},
+  //厨师数量限制
+  chefNumLimit : 6,
   //
   checkHaveMenu : function() {
     if(curMenuAndCustomerQue.length !== 0) {
@@ -794,6 +938,10 @@ let Chefs = {
         //初始进度条显示内容
 
         newboxtext.innerHTML = curMenu[0];
+        menuAndCustomerAndChef[curMenu[0]+curMenu[1]] = i;
+        //当厨师开始做菜，即创建进度条时，从总资产中减去当前在做的菜的成本
+        let leftDespositNum = document.getElementsByClassName("LeftDesposit-Num")[0];
+        leftDespositNum.innerHTML = parseInt(leftDespositNum.innerHTML) - menuCostAndSold[curMenu[0]][0];
         //将进度条加入到页面中
         newbox.appendChild(newboxtext);
         wrap.appendChild(newbox);
@@ -807,6 +955,7 @@ let Chefs = {
     let elem = document.getElementsByClassName("ChefWrap")[index].querySelector(".chefprogress-text"+index+menu[0]);   
     let width = 0;
     let moveChefProgressId = setInterval(moveChefframe, Customers.waitingTime);
+    // Chefs.cookingTimer[]
     function moveChefframe() {
       if (width >= 10) {
         clearInterval(moveChefProgressId);
@@ -861,11 +1010,16 @@ let Chefs = {
       }
     }
   },
+  // stop : function() {
+
+  // },
   //使厨师的状态回到空闲，顾客进入吃饭状态
   //传入当前顾客部分的进度条customerprogress-box、当前菜可以吃的图标、当前顾客的座位index、
   //做当前这个菜的厨师、这个厨师的index
   changeChefBackToFreeAndCustomerToEating : function(menu,cusfather,cusindex,index) {
     let cuscaneat = cusfather.children[1];
+    //remove之前要先停止timer
+    Customers.stopCustomerProgress(Customers.waitingTimer[setAndCustomer[cusindex]+menu[0]]);
     cusfather.removeChild(cuscaneat);
     //从页面移除当前菜的等待的进度条
     let cuswrap = cusfather.parentNode;
@@ -873,7 +1027,7 @@ let Chefs = {
     //添加新的吃菜进度条
     try {
       let newbox = document.createElement("div");
-      newbox.setAttribute("class","customerprogress-box"+cusindex+menu[0]);
+      newbox.setAttribute("class","customereatingprogress-box"+cusindex+menu[0]);
       newbox.style.cssText = `
       width: 70px;
       background-color: #ff2626;
@@ -882,7 +1036,7 @@ let Chefs = {
       border-radius: 25px;
       position: relative`;
       let newboxtext = document.createElement("div");
-      newboxtext.setAttribute("class","customerprogress-text"+cusindex+menu[0]);
+      newboxtext.setAttribute("class","customereatingprogress-text"+cusindex+menu[0]);
       newboxtext.style.cssText = `width: 0%;
       height: 30px;
       background-color: #b20000;
@@ -896,18 +1050,207 @@ let Chefs = {
       newboxtext.innerHTML = menu[0];
       newbox.appendChild(newboxtext);
       cuswrap.appendChild(newbox);
-      Customers.moveCustomerProgress(cusindex,menu[0]);
+      Chefs.moveCustomerEatingProgress(cusindex,menu[0]);
+      Chefs.chefsNum += 1;
     }
     catch(err) {
       ;
     }
-
-
     let cheffather = document.getElementsByClassName("Chef")[index];
     cheffather.style.background = "linear-gradient(to right, #dddddd 0%,#dddddd 50%,#aaaaaa 51%,#aaaaaa 100%)";
     cheffather.removeChild(cheffather.children[1]);
     let chefwrap = cheffather.parentNode;
     chefwrap.removeChild(chefwrap.children[1]);
     
+  },
+  moveCustomerEatingProgress : function(index,me) {
+    let elem = document.getElementsByClassName("CustomerWrap")[index].querySelector(".customereatingprogress-text"+index+me);   
+    let width = 0;
+    let moveCustomerProgressId = setInterval(moveCustomerEatingframe, 500);
+    function moveCustomerEatingframe() {
+      if (width >= 100) {
+        clearInterval(moveCustomerProgressId);
+        elem.style.backgroundColor = "#00b200";
+        elem.innerHTML = me;
+        //吃完之后将吃完的菜的价格加入到该顾客对应的结账字典里，方便最后统一输出
+        //当已经吃完的字典里没有信息时，加入，如果有则自增一
+        if(setAndCustomer[index] in customerAndMenuHaveEatNum === false) {
+          customerAndMenuHaveEatNum[setAndCustomer[index]] = 1;
+        }
+        else {
+          customerAndMenuHaveEatNum[setAndCustomer[index]] += 1;
+        }
+        //如果顾客和账单的对应字典里不存在信息，则加入，有则增加刚刚吃完的菜的售价
+        if(setAndCustomer[index] in customerAndFree === false) {
+          customerAndFree[setAndCustomer[index]] = menuCostAndSold[me][1];
+        }
+        else {
+          customerAndFree[setAndCustomer[index]] += menuCostAndSold[me][1];
+        }
+        Chefs.checkHaveEatAndOvertime(index,me);
+      } else {
+        width++; 
+        elem.style.width = width + '%'; 
+        elem.innerHTML = me;
+      }
+    }
+  },
+  checkHaveEatAndOvertime : function(index, me) {
+    //当顾客已经吃完的菜数量和超时的菜的数量一致时
+    //说明顾客结束用餐，修改顾客背景为绿色，在顾客左下角添加收费图标
+    let haveEatNum = 0;
+    if(customerAndMenuHaveEatNum[setAndCustomer[index]] !== undefined) {
+      haveEatNum = customerAndMenuHaveEatNum[setAndCustomer[index]];
+    }
+    else {
+      ;
+    }
+    let haveOutTimeNum = 0;
+    if(customerAndMenuOutTimeNum[setAndCustomer[index]] !== undefined) {
+      haveOutTimeNum = customerAndMenuOutTimeNum[setAndCustomer[index]];
+    }
+    else {
+      ;
+    }
+    if(haveEatNum + haveOutTimeNum === customerAndMenuNum[setAndCustomer[index]]) {
+      let cus = document.getElementsByClassName("Customer")[index];
+      cus.style.background = "linear-gradient(to right, #80ff00 0%,#80ff00 50%,#00b200 51%,#00b200 100%)";
+      console.log(customerAndFree[setAndCustomer[index]]);
+      let freeimg = document.createElement("img");
+      freeimg.setAttribute("src","../imgs/iconfinder_Euro-Coin_379523.png");
+      freeimg.style.cssText = `
+      width: 60px;
+      height: 60px;
+      position: absolute;
+      left: 10px;
+      top: 60px;`;
+      cus.appendChild(freeimg);
+      //给费用图标添加EventListener，点击后在总资金中增加该顾客对应的费用
+      //并从顾客列表中移除该顾客，空座位数量加一
+      freeimg.addEventListener("click",(function(){Chefs.removeFinishedCustomer(index);}));
+    }
+  },
+  removeFinishedCustomer : function(index) {
+    let cus = document.getElementsByClassName("Customer")[index];
+    let wrap = document.getElementsByClassName("customerprogresswrap"+setAndCustomer[index])[0];
+    cus.removeChild(cus.children[1]);
+    cus.removeChild(cus.children[0]);
+    let father = cus.parentNode;
+    father.removeChild(wrap);
+    cus.style.background = "linear-gradient(to right, #dddddd 0%,#dddddd 50%,#aaaaaa 51%,#aaaaaa 100%)";
+    Customers.customersSets += 1;
+    let leftDespositNum = document.getElementsByClassName("LeftDesposit-Num")[0];
+    leftDespositNum.innerHTML = parseInt(leftDespositNum.innerHTML) + customerAndFree[setAndCustomer[index]];
+    //移除已经完成用餐后的顾客后，显示提示信息
+    let mainfather = document.getElementsByClassName("mainGame")[0];
+    let reveivedFreeAlarm = document.createElement("div");
+    reveivedFreeAlarm.setAttribute("class","FinishedAndWaitingAlarm");
+    let finishContextEle = document.createElement("div");
+    finishContextEle.setAttribute("class","FinishedAlarm-context2");
+    finishContextEle.innerHTML = setAndCustomer[index] + "已经完成用餐，共收获" + customerAndFree[setAndCustomer[index]];
+    reveivedFreeAlarm.appendChild(finishContextEle);
+    mainfather.appendChild(reveivedFreeAlarm);
+    function removeReceivedFreeAlarm() {
+      mainfather.removeChild(reveivedFreeAlarm);
+      handle = 1;
+    }
+    let handle = 0;
+    reveivedFreeAlarm.addEventListener("click",removeReceivedFreeAlarm);
+    setTimeout(function () {
+        if(handle === 0) {
+          removeReceivedFreeAlarm();
+        }
+        else {
+            ;
+        }
+    }, 1000);
+  },
+  addEventListenerToAddChef : function() {
+    let addChef = document.getElementsByClassName("AddChef")[0];
+    addChef.addEventListener("click",Chefs.addChef);
+  },
+  addChef : function() {
+    if(document.getElementsByClassName("Chef").length + 1 === Chefs.chefNumLimit){
+      let chefFather = document.getElementsByClassName("Chefs")[0];
+      chefFather.removeChild(chefFather.lastElementChild);
+      let chefWrap = document.createElement("div");
+      chefWrap.setAttribute("class","ChefWrap");
+      let newChef = document.createElement("div");
+      newChef.setAttribute("class","Chef");
+      chefWrap.style.cssText = `pointer-events:none;`;
+      let newChefImg = document.createElement("img");
+      newChefImg.setAttribute("src","../imgs/iconfinder_Chef-2_379358_origin.png");
+      newChef.appendChild(newChefImg);
+      chefWrap.appendChild(newChef);
+      chefFather.appendChild(chefWrap);
+      Chefs.chefsNum +=1;
+    }
+    else {
+      let chefFather = document.getElementsByClassName("Chefs")[0];
+      let chefWrap = document.createElement("div");
+      chefWrap.setAttribute("class","ChefWrap");
+      let newChef = document.createElement("div");
+      newChef.setAttribute("class","Chef");
+      chefWrap.style.cssText = `pointer-events:none;`;
+      let newChefImg = document.createElement("img");
+      newChefImg.setAttribute("src","../imgs/iconfinder_Chef-2_379358_origin.png");
+      newChef.appendChild(newChefImg);
+      chefWrap.appendChild(newChef);
+      // chefFather.appendChild(chefWrap);
+      chefFather.insertBefore(chefWrap,chefFather.lastElementChild);
+      newChef.addEventListener("click",Chefs.removeChef);
+      Chefs.chefsNum +=1;
+
+    }
+  },
+  removeChef : function() {
+    if(document.getElementsByClassName("Chef").length > 1) {
+      if(document.getElementsByClassName("Chef").length-1 === 5) {
+        let chefFather = document.getElementsByClassName("Chefs")[0];
+        chefFather.removeChild(chefFather.lastElementChild);
+        let chefWrap = document.createElement("div");
+        chefWrap.setAttribute("class","ChefWrap");
+        let newChef = document.createElement("div");
+        newChef.setAttribute("class","AddChef");
+        let newChefImg = document.createElement("img");
+        newChefImg.setAttribute("class","AddChefImg");
+        newChefImg.setAttribute("src","../imgs/iconfinder_Chef-2_379358.png");
+        newChef.appendChild(newChefImg);
+        chefWrap.appendChild(newChef);
+        chefFather.appendChild(chefWrap);
+        Chefs.chefsNum -=1;
+      }
+      else {
+        let chef = document.getElementsByClassName("Chef");
+        let chefFather = chef[0].parentNode.parentNode;
+        chefFather.removeChild(chefFather.children[chef.length-1]);
+        Chefs.chefsNum -=1;
+
+      }
+    }
+    else {
+      let mainfather = document.getElementsByClassName("mainGame")[0];
+      let mustHaveOneChefAlarm = document.createElement("div");
+      mustHaveOneChefAlarm.setAttribute("class","FinishedAndWaitingAlarm");
+      let mustHaveOneChefContextEle = document.createElement("div");
+      mustHaveOneChefContextEle.setAttribute("class","FinishedAlarm-context2");
+      mustHaveOneChefContextEle.innerHTML = "餐厅至少有一个厨师";
+      mustHaveOneChefAlarm.appendChild(mustHaveOneChefContextEle);
+      mainfather.appendChild(mustHaveOneChefAlarm);
+      function removedLastChefAlarm() {
+        mainfather.removeChild(mustHaveOneChefAlarm);
+        handle = 1;
+      }
+      let handle = 0;
+      reveivedFreeAlarm.addEventListener("click",removedLastChefAlarm);
+      setTimeout(function () {
+          if(handle === 0) {
+            removedLastChefAlarm();
+          }
+          else {
+              ;
+          }
+      }, 1000);
+    }
   }
 }
