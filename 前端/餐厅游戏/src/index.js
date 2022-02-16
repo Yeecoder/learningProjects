@@ -11,6 +11,8 @@ let GlobalTimeSet = {
       if(GlobalTimeSet.day < 8) {
         day_elem.innerHTML = "D" + GlobalTimeSet.day;
         GlobalTimeSet.day++; 
+        //更新天数之后，重置顾客
+        Customers.allCustomers = Customers.constAllCustomers;
       }
       else {
         GlobalTimeSet.day = 1;
@@ -21,6 +23,10 @@ let GlobalTimeSet = {
           GlobalTimeSet.StopTimeInterval();
         }
         week_elem.innerHTML = "W" + GlobalTimeSet.week;
+        //更新星期后更新减去厨师工资后的总资产
+        let leftDespositNum = document.getElementsByClassName("LeftDesposit-Num")[0];
+        let chefNum = document.getElementsByClassName("Chef").length;
+        leftDespositNum.innerHTML = parseInt(leftDespositNum.innerHTML) - chefNum * 100;
       }
     }
     GlobalTimeSet.timer = setInterval(dayframe,240000);
@@ -74,6 +80,7 @@ function hiddwnConfirm() {
     Customers.createCustomer();
     Customers.addELToWaitingCustomers();
     Chefs.addEventListenerToAddChef();
+    Chefs.addEventListenerToRemoveChef();
 }
 
 function randomNum(minNum,maxNum){ 
@@ -145,6 +152,8 @@ let Customers = {
   waitingCustomersQueIndex : [],
   //等候区顾客的元素队列，每次创建等候区顾客时要入队，点击等候区后要出队
   waitingCustomersQueEle : [],
+  //更新天数时重置用
+  constAllCustomers : ['379339-512','379444-512','379446-512','379448-512','iconfinder_Boss-3_379348','iconfinder_Man-16_379485','iconfinder_Rasta_379441'],
   //所有可能到达餐厅的用户，一般不变
   allCustomers : ['379339-512','379444-512','379446-512','379448-512','iconfinder_Boss-3_379348','iconfinder_Man-16_379485','iconfinder_Rasta_379441'],
   //当天去过餐厅的顾客，每次创建等候区顾客成功时要自增1，当和所有用户长度一致时停止创建新顾客
@@ -888,10 +897,14 @@ let Customers = {
 let Chefs = {
   //获取当前厨师的个数
   chefsNum : document.getElementsByClassName("Chef").length,
-    //厨师做菜定时器
-    cookingTimer : {},
+  //厨师做菜定时器
+  cookingTimer : {},
+  //厨师工资
+  chefCost : 100,
   //厨师数量限制
   chefNumLimit : 6,
+  //解雇当前厨师需要结算的工资
+  curChefCostFee : 0,
   //
   checkHaveMenu : function() {
     if(curMenuAndCustomerQue.length !== 0) {
@@ -1166,8 +1179,64 @@ let Chefs = {
     }, 1000);
   },
   addEventListenerToAddChef : function() {
+    let addChefAlarm = document.getElementsByClassName("AddChefAlarm-Initial")[0];
+    function addConfirm() {
+      addChefAlarm.style.display="none";
+      cover.style.display="none";
+      Chefs.addChef();
+      let mainfather = document.getElementsByClassName("mainGame")[0];
+      let addSuccessAlarm = document.createElement("div");
+      addSuccessAlarm.setAttribute("class","CantRemoveChefAlarm");
+      let addSuccessContextEle = document.createElement("div");
+      addSuccessContextEle.setAttribute("class","CantRemoveChefAlarm-context");
+      addSuccessContextEle.innerHTML = "招聘厨师成功，您已经有" + document.getElementsByClassName("Chef").length +"名厨师";
+      addSuccessAlarm.appendChild(addSuccessContextEle);
+      mainfather.appendChild(addSuccessAlarm);
+      function addSuccessedAlarm() {
+        mainfather.removeChild(addSuccessAlarm);
+        handle = 1;
+      }
+      let handle = 0;
+      addSuccessAlarm.addEventListener("click",addSuccessedAlarm);
+      setTimeout(function () {
+          if(handle === 0) {
+            addSuccessedAlarm();
+          }
+          else {
+              ;
+          }
+      }, 1000);
+    }
+    let confirmButton = document.getElementsByClassName("AddChefAlarm-Confirm-Button")[0];
+    try {
+      confirmButton.removeEventListener("click",addConfirm);
+    }
+    catch(err) {
+      ;
+    }
+    confirmButton.addEventListener("click",addConfirm);
+    function nopeConfirm() {
+      addChefAlarm.style.display="none";
+      cover.style.display="none";
+    }
+    let nopeButton = document.getElementsByClassName("AddChefAlarm-Nope-Button")[0];
+    try {
+      nopeButton.removeEventListener("click",nopeConfirm);
+    }
+    catch(err) {
+      ;
+    }
+    nopeButton.addEventListener("click",nopeConfirm);
+    
     let addChef = document.getElementsByClassName("AddChef")[0];
-    addChef.addEventListener("click",Chefs.addChef);
+    addChef.addEventListener("click",Chefs.showAddChefConfirm);
+  },
+  showAddChefConfirm : function() {
+    console.log("显示面板");
+    //设置雇佣厨师提示信息和确认栏
+    let addChefAlarm = document.getElementsByClassName("AddChefAlarm-Initial")[0];
+    addChefAlarm.style.display = "";
+    cover.style.display="";
   },
   addChef : function() {
     if(document.getElementsByClassName("Chef").length + 1 === Chefs.chefNumLimit){
@@ -1183,7 +1252,11 @@ let Chefs = {
       newChef.appendChild(newChefImg);
       chefWrap.appendChild(newChef);
       chefFather.appendChild(chefWrap);
+      newChef.addEventListener("click",Chefs.showRemoveChefConfirm);
       Chefs.chefsNum +=1;
+      let leftDespositNum = document.getElementsByClassName("LeftDesposit-Num")[0];
+      
+      // leftDespositNum.innerHTML = parseInt(leftDespositNum.innerHTML) - Chefs.
     }
     else {
       let chefFather = document.getElementsByClassName("Chefs")[0];
@@ -1198,12 +1271,105 @@ let Chefs = {
       chefWrap.appendChild(newChef);
       // chefFather.appendChild(chefWrap);
       chefFather.insertBefore(chefWrap,chefFather.lastElementChild);
-      newChef.addEventListener("click",Chefs.removeChef);
+      newChef.addEventListener("click",Chefs.showRemoveChefConfirm);
       Chefs.chefsNum +=1;
 
     }
   },
+  addEventListenerToRemoveChef : function() {
+    let removeChefAlarm = document.getElementsByClassName("RemoveChefAlarm-Initial")[0];
+    function addRemoveConfirm() {
+      removeChefAlarm.style.display="none";
+      cover.style.display="none";
+      Chefs.removeChef();
+      let chefCostCurDayContext = document.getElementsByClassName("ChefCostCurDay")[0];
+      chefCostCurDayContext.innerHTML = "解雇当前厨师结算工资及解约金需要付出";
+    }
+    let confirmButton = document.getElementsByClassName("RemoveChefAlarm-Confirm-Button")[0];
+    try {
+      confirmButton.removeEventListener("click",addRemoveConfirm);
+    }
+    catch(err) {
+      ;
+    }
+    confirmButton.addEventListener("click",addRemoveConfirm);
+    function nopeRemoveConfirm() {
+      removeChefAlarm.style.display="none";
+      cover.style.display="none";
+    }
+    let nopeButton = document.getElementsByClassName("RemoveChefAlarm-Nope-Button")[0];
+    try {
+      nopeButton.removeEventListener("click",nopeRemoveConfirm);
+    }
+    catch(err) {
+      ;
+    }
+    nopeButton.addEventListener("click",nopeRemoveConfirm);
+  },
+  showRemoveChefConfirm : function() {
+    //设置解雇厨师提示信息和确认栏
+    let removeChefAlarm = document.getElementsByClassName("RemoveChefAlarm-Initial")[0];
+    removeChefAlarm.style.display = "";
+    cover.style.display="";
+    let curDay = parseInt(document.getElementsByClassName("Week-Content")[0].innerHTML[1]);
+    let curChefCost = curDay * 10;
+    let chefCostCurDayContext = document.getElementsByClassName("ChefCostCurDay")[0];
+    chefCostCurDayContext.innerHTML = chefCostCurDayContext.innerHTML + (curChefCost + 100);
+    Chefs.curChefCostFee = curChefCost + 100;
+  },
   removeChef : function() {
+    let leftDesposit = document.getElementsByClassName("LeftDesposit-Num")[0];
+    if(parseInt(leftDesposit.innerHTML) < Chefs.curChefCostFee) {
+      let mainfather = document.getElementsByClassName("mainGame")[0];
+      let cantRemoveChefAlarm = document.createElement("div");
+      cantRemoveChefAlarm.setAttribute("class","CantRemoveChefAlarm");
+      let cantRemoveContextEle = document.createElement("div");
+      cantRemoveContextEle.setAttribute("class","CantRemoveChefAlarm-context");
+      cantRemoveContextEle.innerHTML = "你的资产已经不足支付解约金";
+      cantRemoveChefAlarm.appendChild(cantRemoveContextEle);
+      mainfather.appendChild(cantRemoveChefAlarm);
+      function removedFalsefAlarm() {
+        mainfather.removeChild(cantRemoveChefAlarm);
+        handle = 1;
+      }
+      let handle = 0;
+      cantRemoveChefAlarm.addEventListener("click",removedFalsefAlarm);
+      setTimeout(function () {
+          if(handle === 0) {
+            removedFalsefAlarm();
+          }
+          else {
+              ;
+          }
+      }, 1000);
+      console.log("当前的资金不足以支付解雇厨师的费用");
+    }
+    else {
+      leftDesposit.innerHTML = parseInt(leftDesposit.innerHTML) - Chefs.curChefCostFee;
+      let mainfather = document.getElementsByClassName("mainGame")[0];
+      let removeChefSuccessAlarm = document.createElement("div");
+      removeChefSuccessAlarm.setAttribute("class","CantRemoveChefAlarm");
+      let removeChefSuccessContextEle = document.createElement("div");
+      removeChefSuccessContextEle.setAttribute("class","CantRemoveChefAlarm-context");
+      removeChefSuccessContextEle.innerHTML = "解约厨师成功，解约支出"+Chefs.curChefCostFee;
+      removeChefSuccessAlarm.appendChild(removeChefSuccessContextEle);
+      mainfather.appendChild(removeChefSuccessAlarm);
+      function removedSuccessfAlarm() {
+        mainfather.removeChild(removeChefSuccessAlarm);
+        handle = 1;
+      }
+      let handle = 0;
+      removeChefSuccessAlarm.addEventListener("click",removedSuccessfAlarm);
+      setTimeout(function () {
+          if(handle === 0) {
+            removedSuccessfAlarm();
+          }
+          else {
+              ;
+          }
+      }, 1000);
+    }
+
     if(document.getElementsByClassName("Chef").length > 1) {
       if(document.getElementsByClassName("Chef").length-1 === 5) {
         let chefFather = document.getElementsByClassName("Chefs")[0];
@@ -1225,15 +1391,15 @@ let Chefs = {
         let chefFather = chef[0].parentNode.parentNode;
         chefFather.removeChild(chefFather.children[chef.length-1]);
         Chefs.chefsNum -=1;
-
       }
+
     }
     else {
       let mainfather = document.getElementsByClassName("mainGame")[0];
       let mustHaveOneChefAlarm = document.createElement("div");
-      mustHaveOneChefAlarm.setAttribute("class","FinishedAndWaitingAlarm");
+      mustHaveOneChefAlarm.setAttribute("class","MustHaveOneChefAlarm");
       let mustHaveOneChefContextEle = document.createElement("div");
-      mustHaveOneChefContextEle.setAttribute("class","FinishedAlarm-context2");
+      mustHaveOneChefContextEle.setAttribute("class","MustHaveOneChefAlarm-context");
       mustHaveOneChefContextEle.innerHTML = "餐厅至少有一个厨师";
       mustHaveOneChefAlarm.appendChild(mustHaveOneChefContextEle);
       mainfather.appendChild(mustHaveOneChefAlarm);

@@ -80,6 +80,7 @@ body{
 }
 .ChefWrap {
     position: relative;
+    /* pointer-events:none; */
 }
 .Chef {
     height: 90px;
@@ -519,6 +520,191 @@ body{
     color: #8c6700;
 }
 .FinishedAlarm-context2 {
+    margin: 20px;
+    font-size: 18px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6700;
+}
+.MustHaveOneChefAlarm {
+    top: 40%;
+    left: 0%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 5px solid;
+    border-color: #fff;
+    border-radius: 25px;
+    background-color: #d9e67d;
+    position: absolute;
+    z-index: 3;
+    width: -webkit-fill-available;
+}
+.MustHaveOneChefAlarm-context {
+    margin: 20px;
+    font-size: 18px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6700;
+}
+
+
+.AddChefAlarm-Initial {
+    top: 40%;
+    left: 0%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 5px solid;
+    border-color: #fff;
+    border-radius: 25px;
+    background-color: #ffd24d;
+    position: absolute;
+    z-index: 3;
+}
+.AddChefAlarm-Title {
+    font-family: initial;
+    font-size: xx-large;
+}
+
+.AddChefAlarm-Context {
+    margin: 20px;
+    font-size: 18px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6800;
+
+}
+
+.AddChefAlarm-Confirm-Button {
+    height: 40px;
+    width: 150px;
+    margin: 10px;
+    border: 5px;
+    font-size: 19px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6800;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    border-radius:25px;
+    border-style:solid;
+    border-color: #8c6900;
+    background: linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%);
+}
+.AddChefAlarm-Nope-Button {
+    height: 40px;
+    width: 150px;
+    margin: 10px;
+    border: 5px;
+    font-size: 19px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6800;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    border-radius:25px;
+    border-style:solid;
+    border-color: #8c6900;
+    background: linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%);
+}
+
+
+.RemoveChefAlarm-Initial {
+    top: 40%;
+    left: 0%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 5px solid;
+    border-color: #fff;
+    border-radius: 25px;
+    background-color: #ffd24d;
+    position: absolute;
+    z-index: 3;
+}
+.RemoveChefAlarm-Title {
+    font-family: initial;
+    font-size: xx-large;
+}
+
+.RemoveChefAlarm-Context {
+    margin: 20px;
+    font-size: 18px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6800;
+
+}
+
+.RemoveChefAlarm-Confirm-Button {
+    height: 40px;
+    width: 150px;
+    margin: 10px;
+    border: 5px;
+    font-size: 19px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6800;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    border-radius:25px;
+    border-style:solid;
+    border-color: #8c6900;
+    background: linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%);
+}
+.RemoveChefAlarm-Nope-Button {
+    height: 40px;
+    width: 150px;
+    margin: 10px;
+    border: 5px;
+    font-size: 19px;
+    font-family: -webkit-body;
+    font-weight: 600;
+    color: #8c6800;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    border-radius:25px;
+    border-style:solid;
+    border-color: #8c6900;
+    background: linear-gradient(to top, #ffd24d 0%,#ffd24d 50%,#ffe699 51%,#ffe699 100%);
+}
+
+.CantRemoveChefAlarm {
+    top: 40%;
+    left: 0%;
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 5px solid;
+    border-color: #fff;
+    border-radius: 25px;
+    background-color: #d9e67d;
+    position: absolute;
+    z-index: 3;
+    width: -webkit-fill-available;
+}
+.CantRemoveChefAlarm-context {
     margin: 20px;
     font-size: 18px;
     font-family: -webkit-body;
